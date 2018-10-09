@@ -1,10 +1,5 @@
 #include "imageblend.h"
 
-#include <gsl/gsl_math.h>
-#include <gsl/gsl_vector.h>
-#include <gsl/gsl_spmatrix.h>
-#include <gsl/gsl_splinalg.h>
-
 void non_seamless_clone(Im &src, Im &dst, Im &mask, Im &out)
 {
   for (int i = 0; i < out.w(); i++)

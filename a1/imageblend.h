@@ -1,5 +1,10 @@
 #include "imageio++.h"
 
+#include <gsl/gsl_math.h>
+#include <gsl/gsl_vector.h>
+#include <gsl/gsl_spmatrix.h>
+#include <gsl/gsl_splinalg.h>
+
 #include <stddef.h>
 #include <unordered_map>
 
@@ -27,3 +32,10 @@ private:
   std::unordered_map<Coords, int> coords2index;
   std::unordered_map<int, Coords> index2coords;
 };
+
+void non_seamless_clone(Im &src, Im &dst, Im &mask, Im &out);
+
+gsl_vector *seamless_clone_channel(Im *src, Im *dst, Im *mask,
+  MaskVariables *mv, size_t c, bool use_mixed);
+
+void seamless_clone(Im *src, Im *dst, Im *mask, Im *out, bool use_mixed);
