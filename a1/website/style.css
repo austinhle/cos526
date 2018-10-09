@@ -1,0 +1,107 @@
+.page-content {
+	text-align: left;
+	color: #212121;
+	font-family: 'Droid Sans', sans-serif;
+	padding: 100px;
+	width: 800px;
+	margin: auto
+}
+
+.mdl-button.mdl-js-button.mdl-js-ripple-effect.tab {
+	color: #E0E0E0;
+	margin: 10px;
+	margin-left: 20px;
+	margin-right: 20px;
+	font-family: 'Oswald', 'Droid Sans', sans-serif;
+}
+
+.mdl-button.mdl-js-button.mdl-button--raised.mdl-js-ripple-effect.mdl-button--accent.button-link {
+	font-family: 'Oswald', 'Droid Sans', sans-serif;
+}
+
+td {
+	padding: 10px;
+}
+
+div.cs {
+	color: #212121;
+	font-family: 'Nunito', 'Droid Sans', sans-serif;
+	padding: 100px;
+	width: 1000px;
+	font-weight: 400;
+	text-align: left;
+	margin: auto;
+}
+
+div.cs > p {
+	font-size: 18px;
+}
+
+ul.list {
+	font-size: 18px;
+}
+
+h1.cs {
+	font-size: 72px;
+}
+
+h2.cs {
+	font-size: 36px;
+}
+
+h3.cs {
+	font-size: 24px;
+}
+
+h1.cs, h2.cs, h3.cs, h4.cs {
+	font-family: 'Oswald', 'Droid Sans', sans-serif;
+}
+
+h1.title {
+	font-family: 'Oswald', 'Droid Sans', sans-serif;
+}
+
+h3.title {
+	font-family: 'Oswald', 'Droid Sans', sans-serif;
+}
+
+.page {
+	background-color: #FDFDFD;
+	font-family: 'Droid Sans', sans-serif;
+}
+
+a.link:link, a.link:visited {
+	color: #283593;
+	text-decoration: none;
+}
+
+a.link:hover, a.link:active {
+	color: #283593;
+	text-decoration: underline;
+}
+
+.about {
+	font-size: 75%;
+	font-weight: 300;
+}
+
+.demo-card-wide.project {
+	font-weight: 700;
+	background: #3949AB;
+	margin: auto;
+}
+
+.mdl-button.mdl-button--colored.mdl-js-button.mdl-js-ripple-effect {
+	color: #E0E0E0;
+}
+
+.description.mdl-card__title-text {
+	color: #E0E0E0;
+	font-family: 'Oswald', 'Droid Sans', sans-serif;
+}
+
+.description.mdl-card__supporting-text {
+	font-size: 16px;
+	color: #E0E0E0;
+	font-weight: 500;
+}

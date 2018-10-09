@@ -221,20 +221,21 @@ void seamless_clone(Im *src, Im *dst, Im *mask, Im *out, bool use_mixed)
 
 int main(int argc, char *argv[])
 {
-  if (argc < 8) {
-    fprintf(stderr, "Usage: %s src.png dst.png mask.png out.png \
+  if (argc != 10) {
+    fprintf(stderr, "Usage: %s src.png dst.png mask.png seamless.png seam.png \
       <poisson/mixed> <gray/normal> <x-offset> <y-offset>\n", argv[0]);
     exit(1);
   }
 
-  const char *srcname  = argv[1];
-	const char *dstname  = argv[2];
-  const char *maskname = argv[3];
-  const char *outname  = argv[4];
-  const char *mode     = argv[5];
-  const char *mode2    = argv[6];
-  int x                = atoi(argv[7]);
-  int y                = atoi(argv[8]);
+  const char *srcname       = argv[1];
+	const char *dstname       = argv[2];
+  const char *maskname      = argv[3];
+  const char *seamlessname  = argv[4];
+  const char *seamname      = argv[5];
+  const char *mode          = argv[6];
+  const char *mode2         = argv[7];
+  int x                     = atoi(argv[8]);
+  int y                     = atoi(argv[9]);
 
   /* Parse the command-line argument for mixed vs. Poisson blending. */
   bool use_mixed;
@@ -266,18 +267,26 @@ int main(int argc, char *argv[])
   /* Translate the source image by (x, y) */
   translate(&src, &dst, x, y);
 
-  /* Perform non-seamless cloning */
+  /* Perform seamless cloning */
   Im gray_src = src.toGrayscale();
-  Im out(mask.w(), mask.h());
+  Im seamless(mask.w(), mask.h());
   if (use_grayscale) {
-    seamless_clone(&gray_src, &dst, &mask, &out, use_mixed);
+    seamless_clone(&gray_src, &dst, &mask, &seamless, use_mixed);
   } else {
-    seamless_clone(&src, &dst, &mask, &out, use_mixed);
+    seamless_clone(&src, &dst, &mask, &seamless, use_mixed);
   }
 
   /* Write image back out */
-	if (!out.write(outname))
+	if (!seamless.write(seamlessname))
 		exit(1);
+
+  /* Perform non-seamless cloning */
+  Im seam(mask.w(), mask.h());
+  non_seamless_clone(&src, &dst, &mask, &seam);
+
+  /* Write image back out */
+  if (!seam.write(seamname))
+    exit(1);
 
 	exit(0);
 }

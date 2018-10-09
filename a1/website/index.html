@@ -1,0 +1,132 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<title>Austin Le  |  COS 526</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+<link href='http://fonts.googleapis.com/css?family=Roboto:300,400,500,700' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Open+Sans:400,300' rel='stylesheet' type='text/css'>
+<link href='https://fonts.googleapis.com/css?family=Maven+Pro:400,500,700' rel='stylesheet' type='text/css'>
+<link href='https://fonts.googleapis.com/css?family=Quicksand' rel='stylesheet' type='text/css'>
+<link href="https://fonts.googleapis.com/css?family=Droid+Sans|Oswald" rel="stylesheet">
+<link rel="stylesheet" href="https://storage.googleapis.com/code.getmdl.io/1.0.2/material.indigo-blue.min.css">
+<script src="https://storage.googleapis.com/code.getmdl.io/1.0.2/material.min.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+
+<body class="page">
+<header class="mdl-layout__header">
+<h1 align="middle" class="cs">Assignment 1: Poisson Image Editing</h1>
+<h2 align="middle" class="cs">Advanced Computer Graphics (COS 526)</h2>
+<h2 align="middle" class="cs">Austin Le</h2>
+</header>
+
+<br><br>
+
+<div class="cs">
+
+  <h2 class="cs">Overview</h2>
+  <p>In this assignment, we explore gradient-domain processing through a
+  technique called Poisson image editing, which is used to seamlessly
+  blend a part of source image into a destination image using a mask.</p>
+
+  <p>This is motivated by standard non-seamless cloning, which is effectively
+  a simple copy-and-paste of the source pixels into a destination, without
+  any modification. The results are jarring and immediately stand out to the
+  human eye, since this often leaves abrupt gradients at the transition
+  between the new source pixels and the neighboring destination pixels.</p>
+
+  <h2 class="cs">Poisson Blending</h2>
+  <p>It turns out that human perception tends to be more sensitive to
+  gradients than to intensity values in an image. So, we can formulate this
+  as a problem in which we try to solve for new target pixels at the destination
+  (where the source pixels would be placed) such that we maximally preserve
+  the existing gradients while also trying to minimize the transition gradient
+  between the destination image and the new source region.</p>
+
+  <p>This Poisson problem can be discretized into a linear system of equations,
+  which are shown below. Here, the function f represents a pixel value that we
+  are solving for, while f* represents the existing pixel value in the
+  destination image. v represents the discrete gradient in the source image
+  (i.e. difference between neighboring pixel values). </p>
+
+  <div align="middle">
+    <table style="width=100%">
+      <tr>
+        <img src="images/lsqr.png" align="middle" width="500px"/>
+        <figcaption align="middle">Linear equations in the discrete Poisson solution</figcaption>
+      </tr>
+    </table>
+  </div>
+
+  <p>For each pixel p in the masked region, we examine the 4 neighboring pixels.
+  We add a new equation to the linear system that constrains the gradient from
+  the pixel p to each of its neighbors in the source image. Further, we add a
+  boundary constraint that pulls a boundary pixel p' closer to the value of the
+  neighboring destination pixels, which results in a solution that is more
+  "seamless" at the masked region.</p>
+
+  <p>The resulting linear system of equations has one equation for each pixel
+  in the mask. It turns out to be a very large, but very sparse linear system,
+  which allows us to quickly compute a solution using an iterative least-squares
+  solver for sparse matrices. Solving the system produces a vector of values
+  representing the function f above, which are the new pixel values to be placed
+  into the masked region of the destination image.</p>
+
+  <p>Mapping the results of f back into pixel coordinates, we replace the
+  corresponding pixels in the destination image and obtain our final result.</p>
+
+  <p>It should also be noted that color images have 3 color channels, R, G, and B.
+  As such, we have to perform the above computation for each color channel and
+  then combine the results into RGB pixels before producing the final output.</p>
+
+  <br>
+
+  <h3 class="cs">Results</h3>
+
+  <p>First, let's reproduce some of the results found in the Perez et al. paper.</p>
+
+  <div align="middle">
+    <table style="width=100%">
+      <tr>
+        <td>
+          <img src="images/perez-fig3a-src.png" width="300px"/>
+          <figcaption align="middle">Source image</figcaption>
+        </td>
+        <td>
+          <img src="images/perez-fig3a-dst.png" width="300px"/>
+          <figcaption align="middle">Destination image</figcaption>
+        </td>
+        <td>
+          <img src="images/perez-fig3a-mask.png" width="300px"/>
+          <figcaption align="middle">Mask</figcaption>
+        </td>
+        <td>
+          <img src="images/3a.png" width="300px"/>
+          <figcaption align="middle">Seamless Cloning Result</figcaption>
+        </td>
+    </table>
+  </div>
+
+  <br>
+
+
+
+  <br>
+
+  <h2 class="cs">Extensions</h2>
+
+  <h3 class="cs">Mixed Gradients</h3>
+
+  <h3 class="cs">Monochrome Transfer</h3>
+
+
+  <h2 class="cs">References</h2>
+  <ul>
+    <li><a href="http://www.cs.princeton.edu/courses/archive/fall18/cos526/papers/perez03.pdf">Original "Poisson Image Editing" Paper</a></li>
+  </ul>
+
+</div>
+</body>
+</html>
