@@ -20,6 +20,14 @@ Simple wrapper for JPEG and PNG libraries for image input and output.
 # endif
 #endif
 
+Color Color::toGrayscale()
+{
+  unsigned char c = (unsigned char) bound((0.2125 * (double)r) + (0.7154 * (double)g)
+    + (0.0721 * (double)b));
+
+  return Color(c, c, c);
+}
+
 size_t Im::numWhite() const
 {
   size_t n = 0;
@@ -50,6 +58,18 @@ void Im::copy(Im *i2)
   for (size_t i = 0; i < width; i++)
     for (size_t j = 0; j < height; j++)
       pixels[i + j * width] = (*i2)(i, j);
+}
+
+Im Im::toGrayscale()
+{
+  Im gray_image(width, height);
+  for (size_t i = 0; i < width; i++) {
+    for (size_t j = 0; j < height; j++) {
+      gray_image(i, j) = pixels[i + j * w()].toGrayscale();
+    }
+  }
+
+  return gray_image;
 }
 
 // Read an Im from a file.  Returns true if succeeded, else false.

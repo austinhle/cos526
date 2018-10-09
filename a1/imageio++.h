@@ -14,6 +14,12 @@ Simple wrapper for JPEG and PNG libraries for image input and output.
 #include <vector>
 #include <stdlib.h>
 
+static inline double bound(double d) {
+  if (d > 255.0) return 255.0;
+  else if (d < 0.0) return 0.0;
+  else return d;
+}
+
 // Structure defining color at a pixel: R, G, and B as unsigned char,
 // with array access also available.
 class Color {
@@ -26,6 +32,8 @@ public:
 	unsigned char &operator [] (int i) { return (&r)[i]; }
   bool isWhite() const { return (r == 255) && (g == 255) && (b == 255); }
   bool isBlack() const { return (r == 0) && (g == 0) && (b == 0); }
+
+  Color toGrayscale();
 };
 
 class Coords {
@@ -89,6 +97,11 @@ public:
 	int h() const { return height; }
   int s() const { return size; }
 
+  // Setters for private variables
+  void setPixels(::std::vector<Color> new_pixels) { pixels = new_pixels; }
+  void setWidth(int width_) { width = width_; size = width * height; }
+  void setHeight(int height_) { height = height_; size = width * height; }
+
 	// Array access.  *No* bounds checking.
 	const Color &operator [] (int i) const
 		{ return pixels[i]; }
@@ -114,8 +127,10 @@ public:
   // to the valid neighboring coordinates.
   Neighbors getNeighborCoords(int x, int y) const;
 
-  // Copy another image
+  // Copy another image.
   void copy(Im *i2);
+
+  Im toGrayscale();
 
 	// Read an Im from a file.  Returns true if succeeded, else false.
 	bool read(const ::std::string &filename);
