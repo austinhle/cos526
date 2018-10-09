@@ -223,7 +223,7 @@ int main(int argc, char *argv[])
 {
   if (argc < 8) {
     fprintf(stderr, "Usage: %s src.png dst.png mask.png out.png \
-      <poisson/mixed> <x-offset> <y-offset>\n", argv[0]);
+      <poisson/mixed> <gray/normal> <x-offset> <y-offset>\n", argv[0]);
     exit(1);
   }
 
@@ -231,17 +231,28 @@ int main(int argc, char *argv[])
 	const char *dstname  = argv[2];
   const char *maskname = argv[3];
   const char *outname  = argv[4];
-  const char *flag     = argv[5];
-  int x = atoi(argv[6]);
-  int y = atoi(argv[7]);
+  const char *mode     = argv[5];
+  const char *mode2    = argv[6];
+  int x                = atoi(argv[7]);
+  int y                = atoi(argv[8]);
 
   bool use_mixed;
-  if (strcmp(flag, "mixed") == 0)
+  if (strcmp(mode, "mixed") == 0)
     use_mixed = true;
-  else if (strcmp(flag, "poisson") == 0)
+  else if (strcmp(mode, "poisson") == 0)
     use_mixed = false;
   else {
     fprintf(stderr, "argument must be 'mixed' or 'poisson'\n");
+    exit(1);
+  }
+
+  bool use_grayscale;
+  if (strcmp(mode2, "gray") == 0)
+    use_grayscale = true;
+  else if (strcmp(mode2, "normal") == 0)
+    use_grayscale = false;
+  else {
+    fprintf(stderr, "argument must be 'gray' or 'normal'\n");
     exit(1);
   }
 
@@ -253,16 +264,18 @@ int main(int argc, char *argv[])
   /* Translate the source image by (x, y) */
   translate(&src, &dst, x, y);
 
+  /* Perform non-seamless cloning */
   Im gray_src = src.toGrayscale();
-  gray_src.write(outname);
+  Im out(mask.w(), mask.h());
+  if (use_grayscale) {
+    seamless_clone(&gray_src, &dst, &mask, &out, use_mixed);
+  } else {
+    seamless_clone(&src, &dst, &mask, &out, use_mixed);
+  }
 
-  // /* Perform non-seamless cloning */
-  // Im out(mask.w(), mask.h());
-  // seamless_clone(&gray_src, &dst, &mask, &out, use_mixed);
-  //
-  // /* Write image back out */
-	// if (!out.write(outname))
-	// 	exit(1);
+  /* Write image back out */
+	if (!out.write(outname))
+		exit(1);
 
 	exit(0);
 }
