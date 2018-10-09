@@ -1,5 +1,7 @@
 /*
-Szymon Rusinkiewicz
+Extended by Austin Le
+
+Adapted from Szymon Rusinkiewicz
 Princeton University
 
 imageio++_test.cpp
@@ -10,7 +12,6 @@ Simple test of the imageio++ functionality
 #include <cstdio>
 #include <cstdlib>
 #include "imageio++.h"
-
 
 /* Helper function: returns distance from (x,y) to center of an image of
    size (w,h), scaled such that corners are 1 */

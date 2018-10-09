@@ -1,6 +1,8 @@
+# Extended by Austin Le
+# Adapted from Szymon Rusinkiewicz
+
 CPPFLAGS = -O
-LDLIBS = -lm -ljpeg -lpng
-# LDLIBS =
+LDLIBS = -lm -ljpeg -lpng -lgsl -lgslcblas
 
 all: imageio++_test imageblend
 clean:

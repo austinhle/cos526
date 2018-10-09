@@ -1,5 +1,7 @@
 /*
-Szymon Rusinkiewicz
+Extended by Austin Le
+
+Adapted from Szymon Rusinkiewicz
 Princeton University
 
 imageio++.cpp
@@ -18,6 +20,37 @@ Simple wrapper for JPEG and PNG libraries for image input and output.
 # endif
 #endif
 
+size_t Im::numWhite() const
+{
+  size_t n = 0;
+  for (size_t i = 0; i < w(); i++)
+    for (size_t j = 0; j < h(); j++)
+      if (pixels[i + j * w()].isWhite())
+        n++;
+  return n;
+}
+
+Neighbors Im::getNeighborCoords(int x, int y) const
+{
+  Neighbors n;
+  n.left = (x-1 >= 0) ? Coords(x-1, y) : Coords();
+  n.right = (x+1 < width) ? Coords(x+1, y) : Coords();
+  n.up = (y-1 >= 0) ? Coords(x, y-1) : Coords();
+  n.down = (y+1 < height) ? Coords(x, y+1) : Coords();
+  return n;
+}
+
+void Im::copy(Im *i2)
+{
+  width = i2->w();
+  height = i2->h();
+  size = i2->s();
+  pixels.resize(width * height);
+
+  for (size_t i = 0; i < width; i++)
+    for (size_t j = 0; j < height; j++)
+      pixels[i + j * width] = (*i2)(i, j);
+}
 
 // Read an Im from a file.  Returns true if succeeded, else false.
 bool Im::read(const ::std::string &filename)
