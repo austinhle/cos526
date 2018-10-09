@@ -14,6 +14,8 @@ Simple wrapper for JPEG and PNG libraries for image input and output.
 #include <vector>
 #include <stdlib.h>
 
+/* Perform bounds-checking on the double d, which represents a RGB scalar.
+   If it is out of the range [0,255], then clamp it to within the range. */
 static inline double bound(double d) {
   if (d > 255.0) return 255.0;
   else if (d < 0.0) return 0.0;
@@ -33,9 +35,11 @@ public:
   bool isWhite() const { return (r == 255) && (g == 255) && (b == 255); }
   bool isBlack() const { return (r == 0) && (g == 0) && (b == 0); }
 
+  // Return this color's equivalent perceptual grayscale
   Color toGrayscale();
 };
 
+// Class representing a 2D Cartesian coordinate (x, y)
 class Coords {
 public:
   Coords() : x(-1), y(-1) {}
@@ -51,6 +55,7 @@ public:
   int x, y;
 };
 
+// Hash struct for the Coords class
 namespace std {
 template <>
 struct hash<Coords>
@@ -60,6 +65,7 @@ struct hash<Coords>
 };
 }
 
+// Class defining a set of up to 4 coordinates that all share a single neighbor.
 class Neighbors {
 public:
   Neighbors() {}
@@ -70,6 +76,8 @@ public:
     right = right_;
   }
 
+  /* Return the number of valid neighbors (i.e. neighbors that are not out
+     of bounds) */
   size_t size() const {
     size_t s = 0;
     if (up.valid()) s++;
@@ -130,6 +138,7 @@ public:
   // Copy another image.
   void copy(Im *i2);
 
+  // Return a grayscale copy of this image.
   Im toGrayscale();
 
 	// Read an Im from a file.  Returns true if succeeded, else false.

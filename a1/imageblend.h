@@ -8,6 +8,9 @@
 #include <stddef.h>
 #include <unordered_map>
 
+/* This class is a wrapper around two unordered_maps that provide bidirectional
+   mapping between an (x, y) coordinate within a mask to its index in
+   linear system of equations in the Discrete Poisson solver. */
 class MaskVariables {
 public:
   MaskVariables(Im *mask_) : mask(mask_) {
@@ -33,11 +36,21 @@ private:
   std::unordered_map<int, Coords> index2coords;
 };
 
+/* Place src image into new image with dst's dimensions and then translate
+   it by (x, y). */
 void translate(Im *src, Im *dst, int x, int y);
 
+/* Perform a non-seamless clone without any blending at all. (i.e. copy
+   and paste) */
 void non_seamless_clone(Im &src, Im &dst, Im &mask, Im &out);
 
+/* Perform image blending on a single color channel specified by c. mv
+   specifies a mapping of pixels in the mask to their corresponding equation
+   index. */
 static gsl_vector *seamless_clone_channel(Im *src, Im *dst, Im *mask,
   MaskVariables *mv, size_t c, bool use_mixed);
 
+/* Perform image blending of the src image into the dst image using
+   the provided mask. use_mixed is true if mixed gradients
+   method should be used instead. */
 void seamless_clone(Im *src, Im *dst, Im *mask, Im *out, bool use_mixed);

@@ -236,6 +236,7 @@ int main(int argc, char *argv[])
   int x                = atoi(argv[7]);
   int y                = atoi(argv[8]);
 
+  /* Parse the command-line argument for mixed vs. Poisson blending. */
   bool use_mixed;
   if (strcmp(mode, "mixed") == 0)
     use_mixed = true;
@@ -246,6 +247,7 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
+  /* Parse the command-line argument for grayscale vs. normal blending. */
   bool use_grayscale;
   if (strcmp(mode2, "gray") == 0)
     use_grayscale = true;
