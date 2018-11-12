@@ -14,15 +14,16 @@ using namespace std;
 // x x x x
 // x x x x
 void Matrix4x4::loadMatrix(const char* filename) {
-  ifstream infile;
-  double d1, d2, d3, d4;
-
   Matrix4x4& A(*this);
   double *Aij = (double *) &A;
-
+  double d1, d2, d3, d4;
   int count = 0;
 
-  // TODO: Verify that filename ends in .xf
+  ifstream infile;
+  string sfilename(filename);
+  if (sfilename.compare(sfilename.size() - 3, 3, ".xf") != 0) {
+    throw std::invalid_argument("File must be in .xf format");
+  }
 
   infile.open(filename);
 

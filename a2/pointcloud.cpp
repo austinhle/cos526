@@ -17,7 +17,11 @@ string Point::toString(void) const {
 void PointCloud::loadPointCloud(const char *filename) {
   double cx, cy, cz, nx, ny, nz;
   ifstream infile;
-  // TODO: Verify that filename ends in .pts
+  string sfilename(filename);
+  if (sfilename.compare(sfilename.size() - 4, 4, ".pts") != 0) {
+    throw std::invalid_argument("File must be in .pts format");
+  }
+
   infile.open(filename);
 
   n = 0;
