@@ -22,8 +22,8 @@ Simple wrapper for JPEG and PNG libraries for image input and output.
 
 Color Color::toGrayscale()
 {
-  unsigned char c = (unsigned char) bound((0.2125 * (double)r) + (0.7154 * (double)g)
-    + (0.0721 * (double)b));
+  unsigned char c = (unsigned char) bound((0.2989 * (double)r) + (0.5870 * (double)g)
+    + (0.1140 * (double)b));
 
   return Color(c, c, c);
 }

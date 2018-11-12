@@ -29,7 +29,7 @@
   <h2 class="cs">Overview</h2>
   <p>In this assignment, we explore gradient-domain processing through a
   technique called Poisson image editing, which is used to seamlessly
-  blend a part of source image into a destination image using a mask.</p>
+  blend a region of a source image into a destination image using a mask.</p>
 
   <p>This is motivated by standard non-seamless cloning, which is effectively
   a simple copy-and-paste of the source pixels into a destination, without
@@ -59,6 +59,7 @@
       </tr>
     </table>
   </div>
+  <br>
 
   <p>For each pixel p in the masked region, we examine the 4 neighboring pixels.
   We add a new equation to the linear system that constrains the gradient from
@@ -85,46 +86,339 @@
 
   <h3 class="cs">Results</h3>
 
-  <p>First, let's reproduce some of the results found in the Perez et al. paper.</p>
+  <p>Below, I reproduce some of the results found in the Perez et al. paper.</p>
 
   <div align="middle">
     <table style="width=100%">
       <tr>
         <td>
-          <img src="images/perez-fig3a-src.png" width="300px"/>
+          <img src="images/perez-fig3a-src.png" width="250px"/>
           <figcaption align="middle">Source image</figcaption>
         </td>
         <td>
-          <img src="images/perez-fig3a-dst.png" width="300px"/>
+          <img src="images/perez-fig3a-dst.png" width="250px"/>
           <figcaption align="middle">Destination image</figcaption>
         </td>
         <td>
-          <img src="images/perez-fig3a-mask.png" width="300px"/>
+          <img src="images/perez-fig3a-mask.png" width="250px"/>
           <figcaption align="middle">Mask</figcaption>
         </td>
+      </tr>
+      <tr>
         <td>
-          <img src="images/3a.png" width="300px"/>
-          <figcaption align="middle">Seamless Cloning Result</figcaption>
+          <img src="images/3a.png" width="250px"/>
+          <figcaption align="middle">Seamless cloning result</figcaption>
         </td>
+        <td>
+          <img src="images/3a-seam.png" width="250px"/>
+          <figcaption align="middle">Non-seamless cloning result</figcaption>
+        </td>
+      </tr>
     </table>
   </div>
 
-  <br>
+  <hr>
+  <hr>
+  <hr>
 
+  <div align="middle">
+    <table style="width=100%">
+      <tr>
+        <td>
+          <img src="images/perez-fig3b-src1.png" width="250px"/>
+          <figcaption align="middle">Source image 1</figcaption>
+        </td>
+        <td>
+          <img src="images/perez-fig3b-src2.png" width="250px"/>
+          <figcaption align="middle">Source image 2</figcaption>
+        </td>
+        <td>
+          <img src="images/perez-fig3b-src3.png" width="250px"/>
+          <figcaption align="middle">Source image 3</figcaption>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <img src="images/perez-fig3b-mask1.png" width="250px"/>
+          <figcaption align="middle">Mask 1</figcaption>
+        </td>
+        <td>
+          <img src="images/perez-fig3b-mask2.png" width="250px"/>
+          <figcaption align="middle">Mask 2</figcaption>
+        </td>
+        <td>
+          <img src="images/perez-fig3b-mask3.png" width="250px"/>
+          <figcaption align="middle">Mask 3</figcaption>
+        </td>
+      </tr>
+      <tr>
+        <td width="250px"></td>
+        <td>
+          <img src="images/perez-fig3b-dst.png" width="250px"/>
+          <figcaption align="middle">Destination image</figcaption>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <img src="images/3b-1.png" width="250px"/>
+          <figcaption align="middle">Seamless cloning result 1</figcaption>
+        </td>
+        <td>
+          <img src="images/3b-2.png" width="250px"/>
+          <figcaption align="middle">Seamless cloning result 2</figcaption>
+        </td>
+        <td>
+          <img src="images/3b-3.png" width="250px"/>
+          <figcaption align="middle">Seamless cloning result 3</figcaption>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <img src="images/3b-1-seam.png" width="250px"/>
+          <figcaption align="middle">Non-seamless cloning result 1</figcaption>
+        </td>
+        <td>
+          <img src="images/3b-2-seam.png" width="250px"/>
+          <figcaption align="middle">Non-seamless cloning result 2</figcaption>
+        </td>
+        <td>
+          <img src="images/3b-3-seam.png" width="250px"/>
+          <figcaption align="middle">Non-seamless cloning result 3</figcaption>
+        </td>
+      </tr>
 
+    </table>
+  </div>
 
-  <br>
+  <hr>
+  <hr>
+  <hr>
+
+  <div align="middle">
+    <table style="width=100%">
+      <tr>
+        <td>
+          <img src="images/perez-fig4a-src.png" width="250px"/>
+          <figcaption align="middle">Source image</figcaption>
+        </td>
+        <td>
+          <img src="images/perez-fig4a-dst.png" width="250px"/>
+          <figcaption align="middle">Destination image</figcaption>
+        </td>
+        <td>
+          <img src="images/perez-fig4a-mask.png" width="250px"/>
+          <figcaption align="middle">Mask</figcaption>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <img src="images/4a.png" width="250px"/>
+          <figcaption align="middle">Seamless cloning result</figcaption>
+        </td>
+        <td>
+          <img src="images/4a-seam.png" width="250px"/>
+          <figcaption align="middle">Non-seamless cloning result</figcaption>
+        </td>
+      </tr>
+    </table>
+  </div>
 
   <h2 class="cs">Extensions</h2>
+  <p>After implementing the standard solving method, I decided to pursue
+  some extensions in the form of mixed gradients and monochrome transfer.</p>
 
   <h3 class="cs">Mixed Gradients</h3>
+  <p>In the original method, the solver attempts to maintain the same gradients
+  in the source image when blending it into the destination region. However, it
+  is sometimes desirable to combine gradient properties of the destination region
+  with the source region to produce a more realistic result. A good example of this
+  is when the source region has holes in it, and we would like to retain the
+  destination image's background texture.</p>
+
+  <p>In the example below, we want to blend the written characters onto the wall.
+  If we choose to enforce maintaining the source gradient (which is nearly zero),
+  then we can see a noticeable, flat background patch behind the characters, which
+  comes from the source region's flat gradient. Instead, we can choose to mix
+  our gradients when setting up the linear system of equations to take whichever
+  gradient is higher between the destination image and the source image at each pixel.
+  Doing so retains the destination's background gradient, while keeping the source
+  region's higher frequent content intact.</p>
+
+  <div align="middle">
+    <table style="width=100%">
+      <tr>
+        <td>
+          <img src="images/delta-f.png" width="250px"/>
+          <figcaption align="middle">Source image</figcaption>
+        </td>
+        <td>
+          <img src="images/wall.png" width="250px"/>
+          <figcaption align="middle">Destination image</figcaption>
+        </td>
+        <td>
+          <img src="images/wall-mask.png" width="250px"/>
+          <figcaption align="middle">Mask</figcaption>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <img src="images/delta-f-wall.png" width="250px"/>
+          <figcaption align="middle">Source gradients only</figcaption>
+        </td>
+        <td>
+          <img src="images/delta-f-wall-mixed.png" width="250px"/>
+          <figcaption align="middle">Using mixed gradients</figcaption>
+        </td>
+      </tr>
+    </table>
+  </div>
 
   <h3 class="cs">Monochrome Transfer</h3>
+  <p>This method of image blending can also be used to perform texture transfer.
+  The paper provides an example of blending an apple with a pear, where the
+  result is a pear but with the texture of an apple. However, performing this
+  blend will sometimes produce a result that retains some of the original source
+  color, which we do not want, since we are only interested in the texture.</p>
 
+  <p>To avoid this, we can first transform the source image into a monochrome one.
+  To do this, I map the RGB values into a grayscale value using the following
+  formula used in MATLAB's color library, and use that value in all 3 color channels.</p>
+
+  <center><p><code>Gray = 0.2989 * R + 0.5870 * G + 0.1140 * B </code></p></center>
+
+  <p>Using the monochrome version of the source image, we can perform the same
+  image blending to perform a texture transfer. In the example below, I do this
+  using both the standard gradients as well as with the mixed gradients.
+  Note that using mixed gradients creates a more appealing result, with more
+  convincing detail just underneath the animal in the water's reflection.</p>
+
+  <div align="middle">
+    <table style="width=100%">
+      <tr>
+        <td>
+          <img src="images/3b-1-gray.png" width="300px"/>
+          <figcaption align="middle">Monochrome transfer with standard gradients</figcaption>
+        </td>
+        <td>
+          <img src="images/3b-1-mixed-gray.png" width="300px"/>
+          <figcaption align="middle">Monochrome transfer with mixed gradients</figcaption>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <p>I also performed the same blending using mixed gradients with monochrome transfer
+  with the previous example of blending the characters onto a wall. The result
+  is the same, but the characters have lost their blue color and are now grayscale.</p>
+
+  <div align="middle">
+    <table style="width=100%">
+      <tr>
+        <td>
+          <img src="images/delta-f-wall-mixed.png" width="300px"/>
+          <figcaption align="middle">Chromatic transfer with mixed gradients</figcaption>
+        </td>
+        <td>
+          <img src="images/delta-f-wall-mixed-gray.png" width="300px"/>
+          <figcaption align="middle">Monochrome transfer with mixed gradients</figcaption>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <h2 class="cs">Implementation</h2>
+  <p>This program is written in C++ using the provided ImageIO library from
+  Prof. Rusinkiewicz along with the GNU Scientific Library for sparse linear
+  algebra computation.</p>
+
+  <p>My contributions augment the provided ImageIO library with additional
+  data structures for representing 2D coordinates and the neighbors of a
+  pixel, for improved logical clarity. Further, I create an ImageBlend module
+  consisting of imageblend.cpp and imageblend.h, which introduce a data
+  structure for mapping between pixels and equations in the linear system. The
+  module also provides functions that perform non-seamless cloning as well as
+  seamless cloning, along with its own main function that can be invoked from the
+  command line.</p>
+
+  <h3 class="cs">Supporting Different Image Sizes</h3>
+  <p>We relax our assumptions about all 3 images having the same size and allow
+  the source image to be of a different size from the other two. Then, we ask
+  the user to provide a (x, y) offset to translate the source image into the
+  desired location.</p>
+
+  <p>This is implemented in the program by creating a new image with the same
+  dimensions as the destination/mask image, and then copying over the pixels
+  from the provided source image, each offset by (x, y). This effectively
+  produces a translated version of the original source image, padded all around
+  by black pixels.</p>
+
+  <p>Using the original version of Perez's Figure 3b source, I was able to
+  obtain a similar result by providing a translation of (30, 20) pixels.
+  I played around with the translation further and applied a translation of
+  (60, 20) pixels, which shifts the animal further to the right, but without
+  any noticeable clipping of the animal due to the mask remaining in the same
+  place. I went even further and tried a translation of (120, 20) pixels to see
+  what would happen, and now we can observe clear clipping in the horizontal
+  axis due to the mask and the source region being significantly misaligned.</p>
+
+  <div align="middle">
+    <table style="width=100%">
+      <tr>
+        <td>
+          <img src="images/3b-1.png" width="250px"/>
+          <figcaption align="middle">Result using provided size-matched source</figcaption>
+        </td>
+        <td>
+          <img src="images/perez-fig3b-1-30-20.png" width="250px"/>
+          <figcaption align="middle">Result using original source translated (30, 20)</figcaption>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <img src="images/perez-fig3b-1-60-20.png" width="250px"/>
+          <figcaption align="middle">Result using original source translated (60, 20)</figcaption>
+        </td>
+        <td>
+          <img src="images/perez-fig3b-1-120-20.png" width="250px"/>
+          <figcaption align="middle">Result using original source translated (120, 20)</figcaption>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <p></p>
+
+  <h3 class="cs">Building and Running ImageBlend</h3>
+  <p>From the root directory, use the provided Makefile to build the program.
+  ImageBlend requires that the GSL, libjpeg, and libpng libraries are installed.</p>
+
+  <p><code>$ make</code></p>
+
+  <p>The program is then run from the command line with 9 additional arguments:</p>
+
+  <p><code>$ ./imageblend SRC DST MASK SEAMLESS_OUT SEAMED_OUT mixed/poisson gray/normal x-offset y-offset</code></p>
+
+  <p>The first 5 arguments are all filepaths. Then choose between "mixed" or "poisson"
+  to select the mode for gradient selection during the solving. Then choose between
+  grayscale or normal transfer of the source image. Lastly, provide an x-offset
+  and y-offset for the source image's translation, if needed. To ignore translation,
+  enter 0 for both offsets.</p>
+
+  <p>During execution, the program provides debugging output to <code>stderr</code>
+  regarding the least-squares solving. Upon completion, the program writes out
+  an output image using seamless cloning to <code>SEAMLESS_OUT</code> and a non-seamless
+  version to <code>SEAMED_OUT</code>.</p>
+
+  <p>Here is an example to reproduce the first set of results using the original
+  Poisson blending technique:</p>
+
+  <p><code>$ ./imageblend images/perez-fig3a-src.png images/perez-fig3a-dst.png images/perez-fig3a-mask.png out.png out2.png poisson normal 0 0</code></p>
 
   <h2 class="cs">References</h2>
   <ul>
     <li><a href="http://www.cs.princeton.edu/courses/archive/fall18/cos526/papers/perez03.pdf">Original "Poisson Image Editing" Paper</a></li>
+    <li><a href="http://www.cs.princeton.edu/courses/archive/fall18/cos526/assignment1.html">COS 526 Fall 2018 Assignment 1 Specification</a></li>
+    <li><a href="https://www.mathworks.com/help/matlab/ref/rgb2gray.html">MATLAB documentation of rgb2gray</a></li>
   </ul>
 
 </div>
