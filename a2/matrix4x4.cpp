@@ -256,8 +256,7 @@ Matrix4x4 Matrix4x4::operator*(const Matrix4x4& m) const {
     for (int j = 0; j < 4; j++) {
        r(i, j) = 0.0;
 
-       for(int k = 0; k < 4; k++)
-       {
+       for(int k = 0; k < 4; k++) {
           r(i, j) += A(i, k) * m(k, j);
        }
     }

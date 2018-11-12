@@ -1,7 +1,7 @@
 # Author: Austin Le
 CXX = g++
 CPPFLAGS = -O -std=c++11
-LDLIBS = -lm
+LDLIBS = -lm -lgsl -lgslcblas
 
 all: icp
 clean:

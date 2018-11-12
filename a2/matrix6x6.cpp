@@ -162,8 +162,7 @@ Matrix6x6 Matrix6x6::operator*(const Matrix6x6& m) const {
     for (int j = 0; j < 6; j++) {
        r(i, j) = 0.0;
 
-       for(int k = 0; k < 6; k++)
-       {
+       for(int k = 0; k < 6; k++) {
           r(i, j) += A(i, k) * m(k, j);
        }
     }
