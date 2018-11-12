@@ -19,6 +19,9 @@ public:
 
   // To string
   std::string toString(void) const;
+
+  // Apply a rigid-body matrix transformation
+  Point transform(const Matrix4x4& m) const;
 };
 
 class PointCloud {

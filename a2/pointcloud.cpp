@@ -14,6 +14,15 @@ string Point::toString(void) const {
   return ss.str();
 }
 
+Point Point::transform(const Matrix4x4& m) const {
+  Vector4D v(cx, cy, cz, 1.0);
+  Vector4D t = m * v;
+  Vector4D n(nx, ny, nz, 1.0);
+  Vector4D nt = m * n;
+
+  return Point(t.x, t.y, t.z, nt.x, nt.y, nt.z);
+}
+
 void PointCloud::loadPointCloud(const char *filename) {
   double cx, cy, cz, nx, ny, nz;
   ifstream infile;
