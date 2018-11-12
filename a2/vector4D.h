@@ -1,3 +1,8 @@
+/* vector4D.h
+ * Author: Austin Le
+ * Simple library for a 4-dimensional vector and operations.
+*/
+
 #ifndef VECTOR4D_H
 #define VECTOR4D_H
 
@@ -83,7 +88,12 @@ public:
 
 // Left scalar multiplication
 inline Vector4D operator*(const double& c, const Vector4D& v) {
-  return Vector4D(c * v.x, c * v.y, c * v.z, c*v.w);
+  return Vector4D(c*v.x, c*v.y, c*v.z, c*v.w);
+}
+
+// Inner (dot) product
+inline double dot(const Vector4D& u, const Vector4D& v) {
+  return u.x*v.x + u.y*v.y + u.z*v.z + u.w*v.w;
 }
 
 #endif

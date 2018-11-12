@@ -1,13 +1,57 @@
+#include <fstream>
+#include <iostream>
+#include <string>
+
 #include "pointcloud.h"
+#include "vector3D.h"
 #include "matrix4x4.h"
 #include "vector4D.h"
-
-#include <iostream>
+#include "matrix6x6.h"
+#include "vector6D.h"
 
 using namespace std;
 
+// TODO: Implement 6x6 linear solver
+static void solve(void) {
+
+}
+
+static void loadData(const char* c1, const char* c2,
+  PointCloud* pc1, PointCloud* pc2, Matrix4x4* m1, Matrix4x4* m2) {
+
+  // Put together all relevant file names
+  string file1(c1);
+  string file2(c2);
+  string filename1 = file1.substr(file1.size() - 4);
+  string filename2 = file2.substr(file2.size() - 4);
+  string xfname1 = filename1 + "o.xf";
+  string xfname2 = filename2 + "o.xf";
+
+  // Load point clouds
+  pc1->loadPointCloud(file1.c_str());
+  pc2->loadPointCloud(file2.c_str());
+
+  // Load transformation matrices
+  ifstream xf1(xfname1);
+  if (xf1.good()) {
+    m1->loadMatrix(xfname1.c_str());
+  } else {
+    *m1 = Matrix4x4::identity();
+  }
+
+  ifstream xf2(xfname2);
+  if (xf2.good()) {
+    m2->loadMatrix(xfname2.c_str());
+  } else {
+    *m2 = Matrix4x4::identity();
+  }
+}
+
 int main(int argc, const char *argv[]) {
   // 1. Read in the point clouds and transformations.
+  PointCloud pc1, pc2;
+  Matrix4x4 m1, m2;
+  loadData(argv[1], argv[2], &pc1, &pc2, &m1, &m2);
 
   // 2. Randomly pick 1000 points from PC1.
 

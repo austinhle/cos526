@@ -1,3 +1,8 @@
+/* matrix4x4.h
+ * Author: Austin Le
+ * Simple library for a 4x4 matrix and operations.
+*/
+
 #ifndef MATRIX4X4_H
 #define MATRIX4X4_H
 
@@ -16,6 +21,14 @@ public:
         (*this)(i, j) = data[i*4 + j];
       }
     }
+  }
+
+  static Matrix4x4 identity(void) {
+    double d[] = {1., 0., 0., 0.,
+                  0., 1., 0., 0.,
+                  0., 0., 1., 0.,
+                  0., 0., 0., 1.};
+    return Matrix4x4(d);
   }
 
   // Load matrix from simple ASCII format file

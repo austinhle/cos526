@@ -1,3 +1,8 @@
+/* matrix4x4.cpp
+ * Author: Austin Le
+ * Simple library for a 4x4 matrix and operations.
+*/
+
 #include <cmath>
 #include <stdexcept>
 #include <fstream>
@@ -164,12 +169,10 @@ Matrix4x4 Matrix4x4::operator+(const Matrix4x4& m) const {
 // Addition and assignment
 void Matrix4x4::operator+=(const Matrix4x4& m) {
   Matrix4x4& A(*this);
-  double *Aij = (double *) &A;
-  const double *mij = (const double *) &m;
 
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
-      *Aij++ += *mij++;
+      A(i, j) += m(i, j);
     }
   }
 }
@@ -205,12 +208,10 @@ Matrix4x4 Matrix4x4::operator-(const Matrix4x4& m) const {
 // Subtraction and assignment
 void Matrix4x4::operator-=(const Matrix4x4& m) {
   Matrix4x4& A(*this);
-  double *Aij = (double *) &A;
-  const double *mij = (const double *) &m;
 
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
-      *Aij++ -= *mij++;
+      A(i, j) -= m(i, j);
     }
   }
 }
@@ -236,7 +237,7 @@ void Matrix4x4::operator*=(double c) {
 
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
-      *Aij++ *= c;
+      A(i, j) *= c;
     }
   }
 }

@@ -1,6 +1,12 @@
+/* pointcloud.cpp
+ * Author: Austin Le
+ * Simple library for 3D points and point clouds.
+*/
+
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <cmath>
 
 #include "pointcloud.h"
 #include "matrix4x4.h"
@@ -23,6 +29,10 @@ Point Point::transform(const Matrix4x4& m) const {
   return Point(t.x, t.y, t.z, nt.x, nt.y, nt.z);
 }
 
+double Point::distanceTo(const Point& p) const {
+  return sqrt(pow(cx - p.cx, 2) + pow(cy - p.cy, 2) + pow(cz - p.cz, 2));
+}
+
 void PointCloud::loadPointCloud(const char *filename) {
   double cx, cy, cz, nx, ny, nz;
   ifstream infile;
@@ -43,4 +53,22 @@ void PointCloud::loadPointCloud(const char *filename) {
     }
     infile.close();
   }
+}
+
+// TODO: Replace with KD-tree structure and search
+Point PointCloud::getClosestPoint(Point& p) const {
+  double testDist;
+  double closestDist = INFINITY;
+  Point closestPoint;
+  const vector<Point>& points = getPoints();
+
+  for (const Point& p2 : points) {
+    testDist = p.distanceTo(p2);
+    if (testDist < closestDist) {
+      closestPoint = p2;
+      closestDist = testDist;
+    }
+  }
+
+  return closestPoint;
 }
