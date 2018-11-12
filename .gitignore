@@ -1,4 +1,7 @@
 a1/.DS_Store
+a2/*.xf
+a2/*.pts
+a2/*.lines
 
 # Prerequisites
 *.d
