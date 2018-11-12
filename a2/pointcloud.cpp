@@ -29,10 +29,6 @@ Point Point::transform(const Matrix4x4& m) const {
   return Point(t.x, t.y, t.z, nt.x, nt.y, nt.z);
 }
 
-double Point::distanceTo(const Point& p) const {
-  return sqrt(pow(cx - p.cx, 2) + pow(cy - p.cy, 2) + pow(cz - p.cz, 2));
-}
-
 void PointCloud::loadPointCloud(const char *filename) {
   double cx, cy, cz, nx, ny, nz;
   ifstream infile;
