@@ -13,7 +13,21 @@
 
 using namespace std;
 
+enum {N = 1000};
+
+// Return the median value of the given vector, values.
+static double median(vector<double>& vals) {
+  size_t i1 = vals.size() / 2 - 1;
+  size_t i2 = vals.size() / 2;
+
+  nth_element(vals.begin(), vals.begin() + i1, vals.end());
+  nth_element(vals.begin(), vals.begin() + i2, vals.end());
+
+  return 0.5 * (vals[i1] + vals[i2]);
+}
+
 // Solve Ax = b. x will contain the solution.
+// Adapted from https://www.gnu.org/software/gsl/doc/html/linalg.html#lu-decomposition
 static void solve(Matrix6x6& A, Vector6D& b, Vector6D& x) {
   double *A_data = (double *) &A;
   double *b_data = (double *) &b;
@@ -49,10 +63,8 @@ static void loadData(const char* c1, const char* c2,
   // Put together all relevant file names
   string file1(c1);
   string file2(c2);
-  string filename1 = file1.substr(file1.size() - 4);
-  string filename2 = file2.substr(file2.size() - 4);
-  string xfname1 = filename1 + "o.xf";
-  string xfname2 = filename2 + "o.xf";
+  string xfname1 = file1.substr(0, file1.size() - 4) + "o.xf";
+  string xfname2 = file2.substr(0, file2.size() - 4) + "o.xf";
 
   cout << "Loading point clouds..." << endl;
 
@@ -84,44 +96,80 @@ static void loadData(const char* c1, const char* c2,
 }
 
 int main(int argc, const char *argv[]) {
-  // 1. Read in the point clouds and transformations.
+  // (1) Read in the point clouds and transformations.
   PointCloud pc1, pc2;
-  Matrix4x4 m1, m2;
+  Matrix4x4 m1, m2, m2_inv, m1_to_m2;
   loadData(argv[1], argv[2], pc1, pc2, &m1, &m2);
 
-  // 2. Randomly pick 1000 points from PC1.
-  
+  m2_inv = m2.inverse();
+  m1_to_m2 = m2_inv * m1;
 
-  // 3. For each point in PC1 chosen in (2), apply M1 and then inverse of M2,
-  // producing the point's coordinates in PC2's coordinate system, called p_i.
+  // (2) Randomly pick 1000 points from pc1.
+  vector<Point> *randoms = pc1.randomPoints(N);
 
-    // 4. Find the closest point in PC2, called q_i. Each q_i has normal n_i.
-    // DEBUG HERE!
+  // (3) For each point in pc1 chosen in (2)...
+  vector<Point> ps, qs;
+  for (const Point& rp : *randoms) {
+    // (3.1) Apply m1 and then inverse of m2 to pt to create p_i.
+    Point p_i = rp.transform(m1_to_m2);
+    ps.push_back(p_i);
 
-  // 5. For each triplet (p_i, q_i, n_i), compute the median point-to-plane
-  // distance. There are 1000 triplets in total.
+    // (4) For this p_i, find the closest point in pc2, called q_i.
+    // Each q_i has normal n_i within it.
+    Point q_i = pc2.getClosestPoint(p_i);
+    qs.push_back(q_i);
+  }
 
-  // 6. Perform outlier rejection. Eliminate point-pairs whose point-to-plane
+  // (4.1) DEBUG: Write out a .lines file!
+  ofstream outfile("debug.lines");
+  Point p, q;
+  if (outfile.is_open()) {
+    for (size_t i = 0; i < N; i++) {
+      p = ps[i];
+      q = qs[i];
+
+      outfile << p.cx << " " << p.cy << " " << p.cz << " "
+              << q.cx << " " << q.cy << " " << q.cz << endl;
+    }
+    cout << "DEBUG: Wrote debugging lines into debug.lines" << endl;
+    outfile.close();
+  }
+
+  // (5) For each pair (p_i, q_i), compute the median point-to-plane distance.
+  vector<double> dists;
+  Vector3D piv, qiv, ni;
+  double point_to_plane_dist;
+  for (size_t i = 0; i < N; i++) {
+    piv = ps[i].toCoordsVector3D();
+    qiv = qs[i].toCoordsVector3D();
+    ni = qs[i].toNormalVector3D();
+    point_to_plane_dist = abs(dot(piv - qiv, ni));
+    dists.push_back(point_to_plane_dist);
+  }
+  double med = median(dists);
+  cout << "DEBUG: Median is: " << med << endl;
+
+  // (6) Perform outlier rejection. Eliminate point-pairs whose point-to-plane
   // distance is more than 3x the median from (5).
 
-  // 7. Compute new median point-to-plane distance of remaining point-pairs.
+  // (7) Compute new median point-to-plane distance of remaining point-pairs.
 
-  // 8. For each point i, construct matrix C_i and vector D_i.
+  // (8) For each point i, construct matrix C_i and vector D_i.
   // Sum up all matrices C_i into a matrix C.
   // Sum up all vectors D_i into a vector D.
 
-  // 9. Solve Cx = d.
+  // (9) Solve Cx = d.
   // x is a 6x1 vector containing (Rx, Ry, Rz, Tx, Ty, Tz).
   // Construct M_icp from T*Rz*Ry*Rx.
 
-  // 10. Create new M1' = M2*M_icp*M2i*M1.
+  // (10) Create new M1' = M2*M_icp*M2i*M1.
 
-  // 11. Update all p_i from (6) by transforming them by M_icp.
+  // (11) Update all p_i from (6) by transforming them by M_icp.
   // Recompute median point-to-plane distance.
 
-  // 12. If ratio of distances in (11) to (7) is less than 0.999, continue.
+  // (12) If ratio of distances in (11) to (7) is less than 0.999, continue.
 
-  // 13. Write out M1' to file1.xf.
+  // (13) Write out M1' to file1.xf.
 
   return 0;
 }

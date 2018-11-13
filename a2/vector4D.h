@@ -1,12 +1,13 @@
 /* vector4D.h
  * Author: Austin Le
- * Simple library for a 4-dimensional vector and operations.
+ * Simple library for a 4-dimensional vector and a limited subset of operations.
 */
 
 #ifndef VECTOR4D_H
 #define VECTOR4D_H
 
 #include <cmath>
+#include <iostream>
 
 class Vector4D {
 public:
@@ -17,7 +18,7 @@ public:
   Vector4D(double x_, double y_, double z_, double w_) :
     x(x_), y(y_), z(z_), w(w_) {}
   Vector4D(double x_, double y_, double z_) :
-    x(x_), y(y_), z(z_), w(0.0) {}
+    x(x_), y(y_), z(z_), w(1.0) {}
   Vector4D(double c) :
     x(c), y(c), z(c), w(c) {}
 
@@ -84,6 +85,12 @@ public:
   inline double norm2(void) const {
     return x*x + y*y + z*z + w*w;
   }
+
+  inline void homogenize(void) {
+    x /= w; y /= w; z /= w; w = 1.0;
+  }
+
+  friend std::ostream& operator<<(std::ostream& os, const Vector4D& v);
 };
 
 // Left scalar multiplication

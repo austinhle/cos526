@@ -1,6 +1,7 @@
 /* matrix4x4.cpp
  * Author: Austin Le
  * Simple library for a 4x4 matrix and operations.
+ * TODO: Replace in favor of using GSL's native matrix interface.
 */
 
 #include <cmath>
@@ -20,7 +21,6 @@ using namespace std;
 // x x x x
 void Matrix4x4::loadMatrix(const char* filename) {
   Matrix4x4& A(*this);
-  double *Aij = (double *) &A;
   double d1, d2, d3, d4;
   int count = 0;
 
@@ -35,10 +35,10 @@ void Matrix4x4::loadMatrix(const char* filename) {
   if (infile.is_open()) {
     // Read 4 lines of 4 doubles each
     while ((count < 4) && (infile >> d1 >> d2 >> d3 >> d4)) {
-      *Aij++ = d1;
-      *Aij++ = d2;
-      *Aij++ = d3;
-      *Aij++ = d4;
+      A(count, 0) = d1;
+      A(count, 1) = d2;
+      A(count, 2) = d3;
+      A(count, 3) = d4;
       count++;
     }
     infile.close();
@@ -276,4 +276,12 @@ void Matrix4x4::operator/=(double c) {
       A(i, j) /= c;
     }
   }
+}
+
+ostream& operator<<(ostream& os, const Matrix4x4& m) {
+  os << m(0, 0) << " " << m(0, 1) << " " << m(0, 2) << " " << m(0, 3) << endl;
+  os << m(1, 0) << " " << m(1, 1) << " " << m(1, 2) << " " << m(1, 3) << endl;
+  os << m(2, 0) << " " << m(2, 1) << " " << m(2, 2) << " " << m(2, 3) << endl;
+  os << m(3, 0) << " " << m(3, 1) << " " << m(3, 2) << " " << m(3, 3) << endl;
+  return os;
 }

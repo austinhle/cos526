@@ -7,6 +7,7 @@
 #define VECTOR3D_H
 
 #include <cmath>
+#include <iostream>
 
 class Vector3D {
 public:
@@ -82,6 +83,8 @@ public:
   inline double norm2(void) const {
     return x*x + y*y + z*z;
   }
+
+  friend std::ostream& operator<<(std::ostream& os, const Vector3D& v);
 };
 
 // Left scalar multiplication

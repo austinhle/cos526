@@ -92,6 +92,8 @@ public:
   // Division by scalar and assignment
   void operator/=(double c);
 
+  friend std::ostream& operator<<(std::ostream& os, const Matrix4x4& m);
+
 private:
   Vector4D columns[4];
 };

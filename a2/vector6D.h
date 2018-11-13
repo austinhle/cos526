@@ -7,6 +7,7 @@
 #define VECTOR6D_H
 
 #include <cmath>
+#include <iostream>
 
 class Vector6D {
 public:
@@ -82,6 +83,8 @@ public:
   inline double norm2(void) const {
     return x*x + y*y + z*z + u*u + v*v + w*w;
   }
+
+  friend std::ostream& operator<<(std::ostream& os, const Vector6D& ov);
 };
 
 // Left scalar multiplication
