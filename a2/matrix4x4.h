@@ -31,6 +31,38 @@ public:
     return Matrix4x4(d);
   }
 
+  static Matrix4x4 translation(double tx, double ty, double tz) {
+    double d[] = {1., 0., 0., tx,
+                  0., 1., 0., ty,
+                  0., 0., 1., tz,
+                  0., 0., 0., 1.};
+    return Matrix4x4(d);
+  }
+
+  static Matrix4x4 rotationX(double theta) {
+    double d[] = {1., 0.,         0.,          0.,
+                  0., cos(theta), -sin(theta), 0.,
+                  0., sin(theta),  cos(theta), 0.,
+                  0., 0.,         0.,          1.};
+    return Matrix4x4(d);
+  }
+
+  static Matrix4x4 rotationY(double theta) {
+    double d[] = {cos(theta), 0., -sin(theta), 0.,
+                  0.,         1., 0.,          0.,
+                  sin(theta), 0.,  cos(theta), 0.,
+                  0.,         0., 0.,          1.};
+    return Matrix4x4(d);
+  }
+
+  static Matrix4x4 rotationZ(double theta) {
+    double d[] = {cos(theta), -sin(theta), 0., 0.,
+                  sin(theta),  cos(theta), 0., 0.,
+                  0.,         0.,          1., 0.,
+                  0.,         0.,          0., 1.};
+    return Matrix4x4(d);
+  }
+
   // Load matrix from simple ASCII format file
   // Assumes that the file contains 16 values in the following format:
   // x x x x

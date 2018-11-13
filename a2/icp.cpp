@@ -96,26 +96,27 @@ static void loadData(const char* c1, const char* c2,
 }
 
 int main(int argc, const char *argv[]) {
-  // (1) Read in the point clouds and transformations.
+  /* (1) Read in the point clouds and transformations. */
   PointCloud pc1, pc2;
   Matrix4x4 m1, m2, m2_inv, m1_to_m2;
   loadData(argv[1], argv[2], pc1, pc2, &m1, &m2);
 
+  // (1.1) Precompute transformation from m1's coordinate system to m2's
   m2_inv = m2.inverse();
   m1_to_m2 = m2_inv * m1;
 
-  // (2) Randomly pick 1000 points from pc1.
+  /* (2) Randomly pick 1000 points from pc1. */
   vector<Point> *randoms = pc1.randomPoints(N);
 
-  // (3) For each point in pc1 chosen in (2)...
+  /* (3) For each point in pc1 chosen in (2)... */
   vector<Point> ps, qs;
   for (const Point& rp : *randoms) {
     // (3.1) Apply m1 and then inverse of m2 to pt to create p_i.
     Point p_i = rp.transform(m1_to_m2);
     ps.push_back(p_i);
 
-    // (4) For this p_i, find the closest point in pc2, called q_i.
-    // Each q_i has normal n_i within it.
+    /* (4) For this p_i, find the closest point in pc2, called q_i.
+     * Each q_i has normal n_i within it. */
     Point q_i = pc2.getClosestPoint(p_i);
     qs.push_back(q_i);
   }
@@ -135,7 +136,7 @@ int main(int argc, const char *argv[]) {
     outfile.close();
   }
 
-  // (5) For each pair (p_i, q_i), compute the median point-to-plane distance.
+  /* (5) For each pair, compute the median point-to-plane distance. */
   vector<double> dists;
   Vector3D piv, qiv, ni;
   double point_to_plane_dist;
@@ -143,20 +144,41 @@ int main(int argc, const char *argv[]) {
     piv = ps[i].toCoordsVector3D();
     qiv = qs[i].toCoordsVector3D();
     ni = qs[i].toNormalVector3D();
+
+    // Compute point-to-plane distance
     point_to_plane_dist = abs(dot(piv - qiv, ni));
     dists.push_back(point_to_plane_dist);
   }
-  double med = median(dists);
+
+  // Make a copy, since median is destructive
+  vector<double> dists_copy = dists;
+
+  // Compute the median point-to-plane distance from all N pairs
+  double med = median(dists_copy);
   cout << "DEBUG: Median is: " << med << endl;
 
-  // (6) Perform outlier rejection. Eliminate point-pairs whose point-to-plane
-  // distance is more than 3x the median from (5).
+  /* (6) Perform outlier rejection. Eliminate point-pairs whose point-to-plane
+   * distance is more than 3x the median from (5). */
+  vector<bool> valid(N, true);
+  for (size_t i = 0; i < N; i++) {
+    if (dists[i] > 3.0 * med) {
+      valid[i] = false;
+    }
+  }
 
   // (7) Compute new median point-to-plane distance of remaining point-pairs.
+  vector<double> valid_dists;
+  for (size_t i = 0; i < N; i++) {
+    if (valid[i]) {
+      valid_dists.push_back(dists[i]);
+    }
+  }
+  double valid_med = median(valid_dists);
 
   // (8) For each point i, construct matrix C_i and vector D_i.
   // Sum up all matrices C_i into a matrix C.
   // Sum up all vectors D_i into a vector D.
+  
 
   // (9) Solve Cx = d.
   // x is a 6x1 vector containing (Rx, Ry, Rz, Tx, Ty, Tz).
