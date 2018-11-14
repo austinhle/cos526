@@ -63,7 +63,7 @@ public:
     return Matrix4x4(d);
   }
 
-  // Load matrix from simple ASCII format file
+  // Load matrix from simple ASCII format file from filename
   // Assumes that the file contains 16 values in the following format:
   // x x x x
   // x x x x
@@ -71,8 +71,8 @@ public:
   // x x x x
   void loadMatrix(const char* filename);
 
-  // Print out the matrix to stdout
-  void printMatrix(void) const;
+  // Save matrix in simple ASCII format to filename
+  void saveMatrix(const char* filename) const;
 
   // Determinant
   double det(void) const;

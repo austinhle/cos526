@@ -1,6 +1,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <numeric>
 
 #include <gsl/gsl_linalg.h>
 
@@ -14,8 +15,14 @@
 using namespace std;
 
 enum {N = 1000};
+const double THRESHOLD = 0.9999;
 
-// Return the median value of the given vector, values.
+// Return the mean value of the given vector, vals.
+static double mean(vector<double>& vals) {
+  return accumulate(vals.begin(), vals.end(), 0.0) / vals.size();
+}
+
+// Return the median value of the given vector, vals.
 static double median(vector<double>& vals) {
   size_t i1 = vals.size() / 2 - 1;
   size_t i2 = vals.size() / 2;
@@ -44,7 +51,7 @@ static void solve(Matrix6x6& A, Vector6D& b, Vector6D& x) {
   gsl_linalg_LU_solve (&A_m.matrix, p, &b_v.vector, res);
 
   // Debugging
-  printf ("res = \n");
+  printf ("==DEBUG==\nres = \n");
   gsl_vector_fprintf (stdout, res, "%g");
 
   // Extract values from res into x
@@ -100,98 +107,181 @@ int main(int argc, const char *argv[]) {
   PointCloud pc1, pc2;
   Matrix4x4 m1, m2, m2_inv, m1_to_m2;
   loadData(argv[1], argv[2], pc1, pc2, &m1, &m2);
-
-  // (1.1) Precompute transformation from m1's coordinate system to m2's
   m2_inv = m2.inverse();
-  m1_to_m2 = m2_inv * m1;
 
-  /* (2) Randomly pick 1000 points from pc1. */
-  vector<Point> *randoms = pc1.randomPoints(N);
+  // Variables to store mean point-to-plane distances
+  // Used to determine convergence/stopping condition
+  double valid_mean, new_mean;
+  size_t iterations = 0;
+  do {
+    /* (2) Randomly pick 1000 points from pc1. */
+    vector<Point> *randoms = pc1.randomPoints(N);
 
-  /* (3) For each point in pc1 chosen in (2)... */
-  vector<Point> ps, qs;
-  for (const Point& rp : *randoms) {
-    // (3.1) Apply m1 and then inverse of m2 to pt to create p_i.
-    Point p_i = rp.transform(m1_to_m2);
-    ps.push_back(p_i);
+    // (2.1) Precompute transformation from m1's coordinate system to m2's
+    m1_to_m2 = m2_inv * m1;
 
-    /* (4) For this p_i, find the closest point in pc2, called q_i.
-     * Each q_i has normal n_i within it. */
-    Point q_i = pc2.getClosestPoint(p_i);
-    qs.push_back(q_i);
-  }
+    /* (3) For each point in pc1 chosen in (2)... */
+    vector<Point> ps, qs;
+    for (const Point& rp : *randoms) {
+      // (3.1) Apply m1 and then inverse of m2 to pt to create p_i.
+      Point p_i = rp.transform(m1_to_m2);
+      ps.push_back(p_i);
 
-  // (4.1) DEBUG: Write out a .lines file!
-  ofstream outfile("debug.lines");
-  Point p, q;
-  if (outfile.is_open()) {
+      /* (4) For this p_i, find the closest point in pc2, called q_i.
+       * Each q_i has normal n_i within it. */
+      Point q_i = pc2.getClosestPoint(p_i);
+      qs.push_back(q_i);
+    }
+
+    // (4.1) DEBUG: Write out a .lines file!
+    ofstream outfile("debug.lines");
+    if (outfile.is_open()) {
+      for (size_t i = 0; i < N; i++) {
+        Point p, q;
+        p = ps[i];
+        q = qs[i];
+
+        outfile << p.cx << " " << p.cy << " " << p.cz << " "
+                << q.cx << " " << q.cy << " " << q.cz << endl;
+      }
+      cout << "==DEBUG== Wrote debugging lines into debug.lines" << endl;
+      outfile.close();
+    }
+
+    /* (5) For each pair, compute the median point-to-plane distance. */
+    vector<double> dists;
     for (size_t i = 0; i < N; i++) {
-      p = ps[i];
-      q = qs[i];
+      Vector3D piv, qiv, qin;
+      double point_to_plane_dist;
+      piv = ps[i].toCoordsVector3D();
+      qiv = qs[i].toCoordsVector3D();
+      qin = qs[i].toNormalVector3D();
 
-      outfile << p.cx << " " << p.cy << " " << p.cz << " "
-              << q.cx << " " << q.cy << " " << q.cz << endl;
+      // Compute point-to-plane distance
+      point_to_plane_dist = abs(dot(piv - qiv, qin));
+      dists.push_back(point_to_plane_dist);
     }
-    cout << "DEBUG: Wrote debugging lines into debug.lines" << endl;
-    outfile.close();
-  }
 
-  /* (5) For each pair, compute the median point-to-plane distance. */
-  vector<double> dists;
-  Vector3D piv, qiv, ni;
-  double point_to_plane_dist;
-  for (size_t i = 0; i < N; i++) {
-    piv = ps[i].toCoordsVector3D();
-    qiv = qs[i].toCoordsVector3D();
-    ni = qs[i].toNormalVector3D();
+    // Make a copy, since median is destructive
+    vector<double> dists_copy = dists;
 
-    // Compute point-to-plane distance
-    point_to_plane_dist = abs(dot(piv - qiv, ni));
-    dists.push_back(point_to_plane_dist);
-  }
+    // Compute the median point-to-plane distance from all N pairs
+    double med = median(dists_copy);
+    cout << "==DEBUG== Median of all N is: " << med << endl;
 
-  // Make a copy, since median is destructive
-  vector<double> dists_copy = dists;
-
-  // Compute the median point-to-plane distance from all N pairs
-  double med = median(dists_copy);
-  cout << "DEBUG: Median is: " << med << endl;
-
-  /* (6) Perform outlier rejection. Eliminate point-pairs whose point-to-plane
-   * distance is more than 3x the median from (5). */
-  vector<bool> valid(N, true);
-  for (size_t i = 0; i < N; i++) {
-    if (dists[i] > 3.0 * med) {
-      valid[i] = false;
+    /* (6) Perform outlier rejection. Eliminate point-pairs whose point-to-plane
+     * distance is more than 3x the median from (5).
+     */
+    vector<bool> valid(N, true);
+    for (size_t i = 0; i < N; i++) {
+      if (dists[i] > 3.0 * med) {
+        valid[i] = false;
+      }
     }
-  }
 
-  // (7) Compute new median point-to-plane distance of remaining point-pairs.
-  vector<double> valid_dists;
-  for (size_t i = 0; i < N; i++) {
-    if (valid[i]) {
-      valid_dists.push_back(dists[i]);
+    /* (7) Compute new mean point-to-plane distance of remaining point-pairs. */
+    vector<double> valid_dists;
+    for (size_t i = 0; i < N; i++) {
+      if (valid[i]) {
+        valid_dists.push_back(dists[i]);
+      }
     }
-  }
-  double valid_med = median(valid_dists);
+    valid_mean = mean(valid_dists);
+    cout << "==DEBUG== Mean of valid is: " << valid_mean << endl;
 
-  // (8) For each point i, construct matrix C_i and vector D_i.
-  // Sum up all matrices C_i into a matrix C.
-  // Sum up all vectors D_i into a vector D.
-  
+    /* (8) For each point i, construct matrix C_i and vector d_i.
+     * Sum up all matrices C_i into a matrix C.
+     * Sum up all vectors d_i into a vector d.
+     */
+    // Accumulated terms
+    Matrix6x6 C;
+    Vector6D d;
+    for (size_t i = 0; i < N; i++) {
+      if (valid[i]) {
+        // Intermediate terms
+        Matrix6x6 C_i;
+        Vector6D A_i, d_i;
+        Vector3D p_cross_n, piv, qiv, qin;
+        double b_i;
 
-  // (9) Solve Cx = d.
-  // x is a 6x1 vector containing (Rx, Ry, Rz, Tx, Ty, Tz).
-  // Construct M_icp from T*Rz*Ry*Rx.
+        // Initialize vectors for computation
+        piv = ps[i].toCoordsVector3D();
+        qiv = qs[i].toCoordsVector3D();
+        qin = qs[i].toNormalVector3D();
 
-  // (10) Create new M1' = M2*M_icp*M2i*M1.
+        // Construct A_i
+        p_cross_n = cross(piv, qin);
+        A_i[0] = p_cross_n.x;
+        A_i[1] = p_cross_n.y;
+        A_i[2] = p_cross_n.z;
+        A_i[3] = qin.x;
+        A_i[4] = qin.y;
+        A_i[5] = qin.z;
 
-  // (11) Update all p_i from (6) by transforming them by M_icp.
-  // Recompute median point-to-plane distance.
+        // Compute b_i
+        b_i = -dot(piv - qiv, qin);
 
-  // (12) If ratio of distances in (11) to (7) is less than 0.999, continue.
+        // Compute d_i
+        d_i = A_i * b_i;
 
-  // (13) Write out M1' to file1.xf.
+        // Compute C_i
+        C_i = outer(A_i, A_i);
+
+        // Accumulate the terms
+        C += C_i;
+        d += d_i;
+      }
+    }
+
+    /* (9) Solve Cx = d.
+     * x is a 6x1 vector containing (Rx, Ry, Rz, Tx, Ty, Tz).
+     * Construct M_icp from T*Rz*Ry*Rx. */
+    Vector6D x;
+    solve(C, d, x);
+    Matrix4x4 t, rx, ry, rz, m_icp;
+    t = Matrix4x4::translation(x[3], x[4], x[5]);
+    rx = Matrix4x4::rotationX(x[0]);
+    ry = Matrix4x4::rotationY(x[1]);
+    rz = Matrix4x4::rotationZ(x[2]);
+    m_icp = t * rz * ry * rx;
+
+    /* (10) Update: M1 = M2*M_icp*M2i*M1. */
+    m1 = m2 * m_icp * m2_inv * m1;
+
+    /* (11) Update all p_i from (6) by transforming them by M_icp.
+     * Recompute median point-to-plane distance.
+     */
+    vector<double> new_dists;
+    for (size_t i = 0; i < N; i++) {
+      Vector3D piv, qiv, qin;
+      double point_to_plane_dist;
+      if (valid[i]) {
+        // Update all valid p_i with M_icp
+        ps[i] = ps[i].transform(m_icp);
+
+        // Extract vectors
+        piv = ps[i].toCoordsVector3D();
+        qiv = qs[i].toCoordsVector3D();
+        qin = qs[i].toNormalVector3D();
+
+        // Compute point-to-plane distance
+        point_to_plane_dist = abs(dot(piv - qiv, qin));
+        new_dists.push_back(point_to_plane_dist);
+      }
+    }
+    new_mean = mean(new_dists);
+    cout << "==DEBUG== Mean after update is: " << new_mean << endl;
+    cout << "Ratio of new_mean / valid_mean is: " << new_mean / valid_mean << endl;
+
+    iterations++;
+    /* (12) If ratio of distances in (11) to (7) is less than 0.999, continue. */
+  } while ((new_mean / valid_mean) < THRESHOLD);
+
+  cout << "==DEBUG== ICP converged after " << iterations << " iterations" << endl;
+
+  /* (13) Write out new M1 to file1.xf. */
+  m1.saveMatrix(argv[1]);
+  cout << "Saved updated matrix!" << endl;
 
   return 0;
 }

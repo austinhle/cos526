@@ -57,6 +57,8 @@ void PointCloud::loadPointCloud(const char *filename) {
       n++;
     }
     infile.close();
+  } else {
+    throw std::invalid_argument("File could not be opened");
   }
 }
 

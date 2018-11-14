@@ -77,8 +77,13 @@ public:
   // Division by scalar and assignment
   void operator/=(double c);
 
+  friend std::ostream& operator<<(std::ostream& os, const Matrix6x6& m);
+
 private:
   Vector6D columns[6];
 };
+
+// Outer product of u and v
+Matrix6x6 outer(const Vector6D& u, const Vector6D& v);
 
 #endif

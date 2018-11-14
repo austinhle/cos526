@@ -42,25 +42,25 @@ void Matrix4x4::loadMatrix(const char* filename) {
       count++;
     }
     infile.close();
-  }
-  else {
-    throw std::invalid_argument("Could not open .xf file");
+  } else {
+    throw std::invalid_argument("File could not be opened");
   }
 }
 
-// Print out the matrix to stdout
-void Matrix4x4::printMatrix(void) const {
-  for (int i = 0; i < 4; i++) {
-    for (int j = 0; j < 4; j++) {
-      if (j < 3) {
-        cout << (*this)(i, j) << " ";
-      }
-      else {
-        cout << (*this)(i, j) << endl;
-      }
-    }
+void Matrix4x4::saveMatrix(const char *filename) const {
+  string fname(filename);
+  string xfname = fname.substr(0, fname.size() - 4) + ".xf";
+
+  ofstream outfile(xfname);
+  if (outfile.is_open()) {
+    // TODO: Write out the matrix!
+    outfile << (*this);
+    outfile.close();
+  } else {
+    throw std::invalid_argument("File could not be opened");
   }
 }
+
 
 // Determinant
 double Matrix4x4::det(void) const {
