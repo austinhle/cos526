@@ -5,6 +5,7 @@
 
 #include <gsl/gsl_linalg.h>
 
+#include "point.h"
 #include "pointcloud.h"
 #include "vector3D.h"
 #include "matrix4x4.h"
@@ -100,6 +101,10 @@ int main(int argc, const char *argv[]) {
   loadData(argv[1], argv[2], pc1, pc2, &m1, &m2);
   m2_inv = m2.inverse();
 
+  // Initialize KD-trees within point clouds
+  pc1.initKDTree();
+  pc2.initKDTree();
+
   // Variables to store mean point-to-plane distances
   // Used to determine convergence/stopping condition
   double valid_mean, new_mean;
@@ -120,7 +125,7 @@ int main(int argc, const char *argv[]) {
 
       /* (4) For this p_i, find the closest point in pc2, called q_i.
        * Each q_i has normal n_i within it. */
-      Point q_i = pc2.getClosestPoint(p_i);
+      Point q_i = pc2.nearestBruteForce(p_i);
       qs.push_back(q_i);
     }
 

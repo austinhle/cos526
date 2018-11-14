@@ -14,29 +14,14 @@
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_permutation.h>
 
+#include "kdtree.h"
+#include "point.h"
 #include "pointcloud.h"
 #include "vector3D.h"
 #include "matrix4x4.h"
 #include "vector4D.h"
 
 using namespace std;
-
-Point Point::transform(const Matrix4x4& m) const {
-  Vector4D v = toCoordsVector4D();
-  Vector4D t = m * v;
-  t.homogenize();
-  Vector4D n = toNormalVector4D();
-  Vector4D nt = m * n;
-  nt.homogenize();
-
-  return Point(t.x, t.y, t.z, nt.x, nt.y, nt.z);
-}
-
-std::ostream& operator<<(std::ostream& os, const Point& p) {
-  os << "<" << p.cx << ", " << p.cy << ", " << p.cz << ", "
-            << p.nx << ", " << p.ny << ", " << p.nz << ">";
-  return os;
-}
 
 void PointCloud::loadPointCloud(const char *filename) {
   double cx, cy, cz, nx, ny, nz;
@@ -62,8 +47,13 @@ void PointCloud::loadPointCloud(const char *filename) {
   }
 }
 
-// TODO: Replace with KD-tree structure and search
-Point PointCloud::getClosestPoint(Point& p) const {
+void PointCloud::initKDTree(void) {
+  for (size_t i = 0; i < points.size(); i++) {
+    tree.insert(points[i]);
+  }
+}
+
+Point PointCloud::nearestBruteForce(Point& p) const {
   double testDist;
   double closestDist = INFINITY;
   Point closestPoint;
@@ -77,8 +67,11 @@ Point PointCloud::getClosestPoint(Point& p) const {
     }
   }
 
-  // cout << "Closest distance: " << closestDist << endl;
   return closestPoint;
+}
+
+Point PointCloud::nearestKDTree(Point& p) const {
+  return tree.nearestPoint(p);
 }
 
 // Adapted from https://www.gnu.org/software/gsl/doc/html/permutation.html
@@ -87,7 +80,7 @@ vector<Point> *PointCloud::randomPoints(int numPts) const {
   gsl_rng *r;
   gsl_permutation *p;
   vector<Point> *randomPts = new vector<Point>(numPts);
-  vector<Point> allPts = getPoints();
+  const vector<Point> allPts = getPoints();
 
   // Initialize random number generator
   gsl_rng_env_setup();
