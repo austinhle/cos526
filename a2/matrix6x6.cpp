@@ -12,20 +12,6 @@
 
 using namespace std;
 
-// Print out the matrix to stdout
-void Matrix6x6::printMatrix(void) const {
-  for (int i = 0; i < 6; i++) {
-    for (int j = 0; j < 6; j++) {
-      if (j < 5) {
-        cout << (*this)(i, j) << " ";
-      }
-      else {
-        cout << (*this)(i, j) << endl;
-      }
-    }
-  }
-}
-
 // Transpose
 Matrix6x6 Matrix6x6::transpose(void) const {
   Matrix6x6 r;

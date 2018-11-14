@@ -32,10 +32,7 @@ public:
                   0., 0., 0., 0., 0., 1.};
     return Matrix6x6(d);
   }
-
-  // Print out the matrix to stdout
-  void printMatrix(void) const;
-
+  
   // Transpose
   Matrix6x6 transpose(void) const;
 

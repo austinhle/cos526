@@ -23,6 +23,7 @@ public:
     }
   }
 
+  // Identity matrix
   static Matrix4x4 identity(void) {
     double d[] = {1., 0., 0., 0.,
                   0., 1., 0., 0.,
@@ -31,6 +32,7 @@ public:
     return Matrix4x4(d);
   }
 
+  // Matrix for translation
   static Matrix4x4 translation(double tx, double ty, double tz) {
     double d[] = {1., 0., 0., tx,
                   0., 1., 0., ty,
@@ -39,6 +41,16 @@ public:
     return Matrix4x4(d);
   }
 
+  // Matrix for linearized rotations
+  static Matrix4x4 rotation(double rx, double ry, double rz) {
+    double d[] = { 1., -rz,  ry,  0.,
+                   rz,  1., -rx,  0.,
+                  -ry,  rx,  1.,  0.,
+                   0.,  0.,  0.,  1.};
+    return Matrix4x4(d);
+  }
+
+  // Matrix for pure rotation w.r.t. X-axis
   static Matrix4x4 rotationX(double theta) {
     double d[] = {1., 0.,         0.,          0.,
                   0., cos(theta), -sin(theta), 0.,
@@ -47,6 +59,7 @@ public:
     return Matrix4x4(d);
   }
 
+  // Matrix for pure rotation w.r.t. Y-axis
   static Matrix4x4 rotationY(double theta) {
     double d[] = {cos(theta), 0., -sin(theta), 0.,
                   0.,         1., 0.,          0.,
@@ -55,6 +68,7 @@ public:
     return Matrix4x4(d);
   }
 
+  // Matrix for pure rotation w.r.t. Z-axis
   static Matrix4x4 rotationZ(double theta) {
     double d[] = {cos(theta), -sin(theta), 0., 0.,
                   sin(theta),  cos(theta), 0., 0.,

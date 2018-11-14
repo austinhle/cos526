@@ -51,8 +51,8 @@ static void solve(Matrix6x6& A, Vector6D& b, Vector6D& x) {
   gsl_linalg_LU_solve (&A_m.matrix, p, &b_v.vector, res);
 
   // Debugging
-  printf ("==DEBUG==\nres = \n");
-  gsl_vector_fprintf (stdout, res, "%g");
+  // printf ("==DEBUG==\nres = \n");
+  // gsl_vector_fprintf (stdout, res, "%g");
 
   // Extract values from res into x
   for (int i = 0; i < 6; i++) {
@@ -70,8 +70,8 @@ static void loadData(const char* c1, const char* c2,
   // Put together all relevant file names
   string file1(c1);
   string file2(c2);
-  string xfname1 = file1.substr(0, file1.size() - 4) + "o.xf";
-  string xfname2 = file2.substr(0, file2.size() - 4) + "o.xf";
+  string xfname1 = file1.substr(0, file1.size() - 4) + ".xf";
+  string xfname2 = file2.substr(0, file2.size() - 4) + ".xf";
 
   cout << "Loading point clouds..." << endl;
 
@@ -133,21 +133,6 @@ int main(int argc, const char *argv[]) {
       qs.push_back(q_i);
     }
 
-    // (4.1) DEBUG: Write out a .lines file!
-    ofstream outfile("debug.lines");
-    if (outfile.is_open()) {
-      for (size_t i = 0; i < N; i++) {
-        Point p, q;
-        p = ps[i];
-        q = qs[i];
-
-        outfile << p.cx << " " << p.cy << " " << p.cz << " "
-                << q.cx << " " << q.cy << " " << q.cz << endl;
-      }
-      cout << "==DEBUG== Wrote debugging lines into debug.lines" << endl;
-      outfile.close();
-    }
-
     /* (5) For each pair, compute the median point-to-plane distance. */
     vector<double> dists;
     for (size_t i = 0; i < N; i++) {
@@ -180,13 +165,15 @@ int main(int argc, const char *argv[]) {
     }
 
     /* (7) Compute new mean point-to-plane distance of remaining point-pairs. */
-    vector<double> valid_dists;
+    double total = 0.0;
+    size_t count = 0;
     for (size_t i = 0; i < N; i++) {
       if (valid[i]) {
-        valid_dists.push_back(dists[i]);
+        total += dists[i];
+        count++;
       }
     }
-    valid_mean = mean(valid_dists);
+    valid_mean = total / count;
     cout << "==DEBUG== Mean of valid is: " << valid_mean << endl;
 
     /* (8) For each point i, construct matrix C_i and vector d_i.
@@ -238,20 +225,19 @@ int main(int argc, const char *argv[]) {
      * Construct M_icp from T*Rz*Ry*Rx. */
     Vector6D x;
     solve(C, d, x);
-    Matrix4x4 t, rx, ry, rz, m_icp;
+    Matrix4x4 r, t, m_icp;
+    r = Matrix4x4::rotation(x[0], x[1], x[2]);
     t = Matrix4x4::translation(x[3], x[4], x[5]);
-    rx = Matrix4x4::rotationX(x[0]);
-    ry = Matrix4x4::rotationY(x[1]);
-    rz = Matrix4x4::rotationZ(x[2]);
-    m_icp = t * rz * ry * rx;
+    m_icp = t * r;
 
     /* (10) Update: M1 = M2*M_icp*M2i*M1. */
     m1 = m2 * m_icp * m2_inv * m1;
 
     /* (11) Update all p_i from (6) by transforming them by M_icp.
-     * Recompute median point-to-plane distance.
+     * Recompute mean point-to-plane distance.
      */
-    vector<double> new_dists;
+    total = 0.0;
+    count = 0;
     for (size_t i = 0; i < N; i++) {
       Vector3D piv, qiv, qin;
       double point_to_plane_dist;
@@ -265,11 +251,11 @@ int main(int argc, const char *argv[]) {
         qin = qs[i].toNormalVector3D();
 
         // Compute point-to-plane distance
-        point_to_plane_dist = abs(dot(piv - qiv, qin));
-        new_dists.push_back(point_to_plane_dist);
+        total += abs(dot(piv - qiv, qin));
+        count++;
       }
     }
-    new_mean = mean(new_dists);
+    new_mean = total / count;
     cout << "==DEBUG== Mean after update is: " << new_mean << endl;
     cout << "Ratio of new_mean / valid_mean is: " << new_mean / valid_mean << endl;
 
