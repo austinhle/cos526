@@ -14,13 +14,8 @@
 
 using namespace std;
 
-enum {N = 1000};
+const size_t N = 1000;
 const double THRESHOLD = 0.9999;
-
-// Return the mean value of the given vector, vals.
-static double mean(vector<double>& vals) {
-  return accumulate(vals.begin(), vals.end(), 0.0) / vals.size();
-}
 
 // Return the median value of the given vector, vals.
 static double median(vector<double>& vals) {
@@ -49,10 +44,6 @@ static void solve(Matrix6x6& A, Vector6D& b, Vector6D& x) {
   gsl_permutation *p = gsl_permutation_alloc(6);
   gsl_linalg_LU_decomp (&A_m.matrix, p, &s);
   gsl_linalg_LU_solve (&A_m.matrix, p, &b_v.vector, res);
-
-  // Debugging
-  // printf ("==DEBUG==\nres = \n");
-  // gsl_vector_fprintf (stdout, res, "%g");
 
   // Extract values from res into x
   for (int i = 0; i < 6; i++) {
@@ -222,7 +213,8 @@ int main(int argc, const char *argv[]) {
 
     /* (9) Solve Cx = d.
      * x is a 6x1 vector containing (Rx, Ry, Rz, Tx, Ty, Tz).
-     * Construct M_icp from T*Rz*Ry*Rx. */
+     * Construct M_icp from T*Rz*Ry*Rx.
+     */
     Vector6D x;
     solve(C, d, x);
     Matrix4x4 r, t, m_icp;
@@ -267,7 +259,6 @@ int main(int argc, const char *argv[]) {
 
   /* (13) Write out new M1 to file1.xf. */
   m1.saveMatrix(argv[1]);
-  cout << "Saved updated matrix!" << endl;
 
   return 0;
 }
