@@ -88,10 +88,6 @@ public:
     return x*x + y*y + z*z + w*w;
   }
 
-  inline void homogenize(void) {
-    x /= w; y /= w; z /= w; w = 1.0;
-  }
-
   friend std::ostream& operator<<(std::ostream& os, const Vector4D& v);
 };
 

@@ -14,10 +14,8 @@ namespace icp {
 Point Point::transform(const Matrix4x4& m) const {
   Vector4D v = toCoordsVector4D();
   Vector4D t = m * v;
-  t.homogenize();
   Vector4D n = toNormalVector4D();
   Vector4D nt = m * n;
-  nt.homogenize();
 
   return Point(t.x, t.y, t.z, nt.x, nt.y, nt.z);
 }
