@@ -1,7 +1,10 @@
+.DS_Store
 a1/.DS_Store
+a1/website/.DS_Store
 a2/*.xf
 a2/*.pts
 a2/*.lines
+a2/icp
 
 # Prerequisites
 *.d
