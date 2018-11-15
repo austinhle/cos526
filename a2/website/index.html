@@ -1,0 +1,213 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<title>Austin Le  |  COS 526</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+<link href='http://fonts.googleapis.com/css?family=Roboto:300,400,500,700' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Open+Sans:400,300' rel='stylesheet' type='text/css'>
+<link href='https://fonts.googleapis.com/css?family=Maven+Pro:400,500,700' rel='stylesheet' type='text/css'>
+<link href='https://fonts.googleapis.com/css?family=Quicksand' rel='stylesheet' type='text/css'>
+<link href="https://fonts.googleapis.com/css?family=Droid+Sans|Oswald" rel="stylesheet">
+<link rel="stylesheet" href="https://storage.googleapis.com/code.getmdl.io/1.0.2/material.indigo-blue.min.css">
+<script src="https://storage.googleapis.com/code.getmdl.io/1.0.2/material.min.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+
+<body class="page">
+<header class="mdl-layout__header">
+<h1 align="middle" class="cs">Assignment 2: Point Cloud Registration</h1>
+<h2 align="middle" class="cs">Advanced Computer Graphics (COS 526)</h2>
+<h2 align="middle" class="cs">Austin Le</h2>
+</header>
+
+<br><br>
+
+<div class="cs">
+
+  <h2 class="cs">Overview</h2>
+
+  <p>In this assignment, I implement the Iterative Closest Points (ICP) algorithm
+  for registration of point clouds. Using a provided set of 3D point cloud scans
+  and a given set of initial guesses for their transformations, the algorithm
+  pairwise aligns the point clouds by computing new transformations that minimize
+  pairwise point cloud distances. If the initial transformation guesses are
+  sufficiently "close enough", the algorithm will converge to produce a single,
+  cohesively aligned point cloud representing the entire, original 3D surface.</p>
+
+  <br><hr>
+
+  <h2 class="cs">Implementation</h2>
+
+  <h3 class="cs">User-defined Libraries and Classes</h3>
+
+  <p>To implement the Iterative Closest Points algorithm, I first designed and
+  implemented several different libraries and classes:</p>
+
+  <ul>
+    <li><tt>Point</tt> (<code>point.h, point.cpp</code>): A point in 3D Cartesian space.
+      Stores point coordinates as well as normal vector. Supports transformations.</li>
+    <li><tt>PointCloud</tt> (<code>pointcloud.h, pointcloud.cpp</code>):
+      A point cloud of points in 3D Cartesian space. Supports nearest neighbor
+      search via brute-force linear search or kd-tree search and can return a
+      random subset of its points.</li>
+    <li><tt>KDTree</tt> (<code>kdtree.h, kdtree.cpp</code>): A k-dimensional tree
+      for storing points in 3D Cartesian space. Supports simple insertion and
+      nearest neighbor methods.</li>
+    <li><tt>Matrix4x4</tt> (<code>matrix4x4.h, matrix4x4.cpp</code>):
+      A non-generalized implementation of a 4x4 matrix and some simple operations,
+      including addition, subtraction, multiplication by vector and matrix, division,
+      determinant, inverse, and constructors for specific translation and rotation
+      matrices used in rigid-body transformations. Used to represent a point cloud's
+      affine transformation from its own coordinate space into world space.</li>
+    <li><tt>Matrix6x6</tt> (<code>matrix6x6.h, matrix6x6.cpp</code>):
+      A non-generalized implementation of a 6x6 matrix and some simple operations,
+      including addition, subtraction, multiplication by vector and matrix, and
+      division. Does not support other operations, and is only used for formulating
+      and solving the 6x6 linear system of equations in the ICP algorithm.</li>
+    <li><tt>Vector3D</tt> (<code>vector3D.h, vector3D.cpp</code>):
+      A 3-dimensional vector supporting simple operations, including addition,
+      subtraction, multiplication, division, dot product, and cross product. Used
+      to represent a Point's coordinates as well as its normal vector, and perform
+      math at a higher level of abstraction.</li>
+    <li><tt>Vector4D</tt> (<code>vector4D.h, vector4D.cpp</code>):
+      A 4-dimensional vector supporting simple operations, including addition,
+      subtraction, multiplication, division, and dot product. Used to represent
+      a Point in homogenous coordinates so that an affine transformation can
+      be performed by a simple matrix-vector multiplication.</li>
+    <li><tt>Vector6D</tt> (<code>vector6D.h, vector6D.cpp</code>):
+      A 46dimensional vector supporting simple operations, including addition,
+      subtraction, multiplication, division, and dot product. It is used only
+      alongside <tt>Matrix6x6</tt> for formulating and solving a 6x6 linear
+      system of equations in the ICP algorithm.</li>
+  </ul>
+
+  <p><b>Side note:</b> The implementations of the matrix and vector libraries
+  were inspired by a similar assignment that I previously did in my undergraduate
+  computer graphics course and then later improved upon when I TA'd for the class.
+  I realized shortly after that I had already implemented a good portion
+  of the libraries that I could probably have just used the (most certainly better)
+  matrix and vector libraries included in the GNU Scientific Library, rather than
+  using GSL only for the linear solver.</p>
+
+  <h3 class="cs">The Iterative Closest Points Program</h3>
+
+  <p>Using the above libraries, I then composed <code>icp.cpp</code>, which
+  is the program's entry point. This file contains code for solving a linear
+  system of equations using LU decomposition from the GNU Scientific Library.
+  In its main function, it performs the 13 steps outlined in the provided
+  assignment specification. During execution, the program's progress is sent
+  to standard output, and overall time consumed is reported at the end.</p>
+
+  <h3 class="cs">Efficiency</h3>
+
+  <p>The initial implementation of the algorithm used a brute-force linear search
+  through the entire point cloud to find the nearest neighbor. For the provided
+  point clouds, this process was not terribly slow. However, after I added an
+  additional kd-tree data structure for logarithmic nearest neighbor search,
+  performance improved significantly. On average, I noted a 3-5x improvement in
+  time for the provided point clouds, in exchange for some pre-processing to
+  create the kd-tree and the space to store it.</p>
+
+  <h3 class="cs">Problems I ran into...</h3>
+
+  <p>For a while, I could not figure out why the mean point-to-plane distance
+  would immediately increase after a single iteration (and consequently
+  terminate the algorithm). I ran the program several times on the same two
+  point clouds, and noticed that my two point clouds were slowly moving
+  further and further apart from each other with each run. After some debugging
+  and discussion with other students, I found that the formulation of the
+  Y-rotation matrix from the reference slides had a typo: the angle was not
+  negated properly! A quick change in negative signs quickly resolved the issue.</p>
+
+  <br><hr>
+
+  <h2 class="cs">Results</h2>
+
+  <p>I performed the pairwise alignment of point cloud scans as suggested
+  in the assignment spec:</p>
+
+  <p><tt>
+  ./icp bun045.pts bun000.pts<br/>
+  ./icp bun090.pts bun045.pts<br/>
+  ./icp bun315.pts bun000.pts<br/>
+  ./icp bun270.pts bun315.pts<br/>
+  ./icp bun180.pts bun270.pts<br/>
+  ./icp chin.pts bun315.pts<br/>
+  ./icp ear_back.pts bun180.pts<br/>
+  ./icp top2.pts bun180.pts<br/>
+  ./icp top3.pts bun000.pts
+  </tt></p>
+
+  <p>Then, <tt>pts_view *.pts</tt> resulted in a beautifully aligned point cloud
+    of a bunny! Here are a few different angles of the final result.</p>
+
+  <center>
+    <img src="images/0.png" width="300px"></img>
+    <img src="images/1.png" width="300px"></img>
+    <img src="images/2.png" width="300px"></img>
+    <img src="images/3.png" width="300px"></img>
+  </center>
+
+  <br><hr>
+
+  <h2 class="cs">Future Work & Learnings</h2>
+  <p>Being a somewhat involved assignment with the chance to implement some
+  of my own libraries, I was able to continue to hone my skills in good C++
+  programming and style. Although I spent some time adhering to Google's
+  C++ Style Guide, I am sure that there is still a lot that can be done to
+  improve the overall modularity, design, and readability of this project.</p>
+
+  <p>In the future, I would like to revisit the project to continue cleaning up
+  the code and improve its overall design and clarity as much as possible. In
+  addition, I would most likely also remove my own matrix and vector libraries
+  in favor of using more robust ones, such as those written in the GNU
+  scientific library.</p>
+
+  <br><hr>
+
+  <h2 class="cs">Usage</h2>
+
+  <h3 class="cs">Dependencies</h3>
+  <ul>
+    <li>GSL (GNU Scientific Library)</li>
+  </ul>
+
+  <h3 class="cs">Building with Makefile</h3>
+
+  <p>From the root directory, use the provided Makefile to build the program.
+  </p>
+
+  <p><code>$ make</code></p>
+
+  <h3 class="cs">Execution</h3>
+
+  <p>The program is then run from the command line with 2 additional arguments:</p>
+
+  <p><code>$ ./icp src.pts dst.pts</code></p>
+
+  <p>The program expects that the point cloud (.pts) files and their corresponding
+  transformation (.xf) files are in the same directory. It will not recursively
+  search for the files in a nested subdirectory. Given <code>src.pts</code> and
+  <code>dst.pts</code>, the program loads up the transformation files
+  <code>src.xf</code> and <code>dst.xf</code> from the same local directory.</p>
+
+  <p>After aligning <code>src.pts</code> and <code>dst.pts</code>, the provided
+  <code>pts_view</code> program can be run to view the two point clouds, which
+  should now be aligned.</p>
+
+  <p><code>$ ./pts_view src.pts dst.pts</code></p>
+
+
+  <h2 class="cs">References</h2>
+  <ul>
+    <li><a href="https://www.gnu.org/software/gsl/doc/html/linalg.html#lu-decomposition">GSL documentation for LU decomposition for solving linear systems</a></li>
+    <li><a href="http://www.cs.princeton.edu/courses/archive/fall18/cos526/assignment2.html">COS 526 Fall 2018 Assignment 2 Specification</a></li>
+    <li><a href="https://google.github.io/styleguide/cppguide.html">Google's C++ Style Guide</a></li>
+    <li><a href="http://www.cs.princeton.edu/courses/archive/fall15/cos226/assignments/kdtree.html">COS 226 KD-Tree Assignment Specification</a></li>
+  </ul>
+
+</div>
+</body>
+</html>

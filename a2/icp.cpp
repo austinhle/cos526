@@ -113,7 +113,7 @@ int main(int argc, const char *argv[]) {
   m2_inv = m2.inverse();
 
   // Initialize KD-trees within point clouds
-  pc1.initKDTree();
+  pc1.initKDTree(); // Not needed, since we only do nearest search in pc2
   pc2.initKDTree();
 
   // Variables to determine convergence/stopping condition

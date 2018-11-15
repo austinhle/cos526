@@ -64,7 +64,7 @@ void KDTree::nearestPoint_(const Point& p, size_t level, KDTreeNode *node,
   nearestPoint_(p, level + 1, (diff > 0.0) ? node->left : node->right,
     best, best_dist);
 
-  // If we didn't find better down that path, then also search the other path
+  // Search other path, since it might have a closer point
   if (diff2 < *best_dist) {
     nearestPoint_(p, level + 1, (diff > 0.0) ? node->right : node->left,
     best, best_dist);

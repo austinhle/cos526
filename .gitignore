@@ -5,6 +5,7 @@ a2/*.xf
 a2/*.pts
 a2/*.lines
 a2/icp
+*.zip
 
 # Prerequisites
 *.d
