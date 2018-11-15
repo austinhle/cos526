@@ -1,5 +1,11 @@
-#include <fstream>
+/* icp.cpp
+ * Author: Austin Le
+ * Simple implementation of Iterative Closest Points algorithm for
+ * point cloud registration.
+*/
+
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <numeric>
 #include <ctime>
@@ -14,13 +20,13 @@
 #include "matrix6x6.h"
 #include "vector6D.h"
 
-using namespace std;
+using namespace icp;
 
 const size_t N = 1000;
 const double THRESHOLD = 0.9999;
 
 // Return the median value of the given vector, vals.
-static double median(vector<double>& vals) {
+inline static double median(std::vector<double>& vals) {
   size_t i1 = vals.size() / 2 - 1;
   size_t i2 = vals.size() / 2;
 
@@ -58,46 +64,47 @@ static void solve(Matrix6x6& A, Vector6D& b, Vector6D& x) {
 }
 
 static void loadData(const char* c1, const char* c2,
-  PointCloud& pc1, PointCloud& pc2, Matrix4x4* m1, Matrix4x4* m2) {
+  PointCloud& pc1, PointCloud& pc2,
+  Matrix4x4* m1, Matrix4x4* m2) {
 
   // Put together all relevant file names
-  string file1(c1);
-  string file2(c2);
-  string xfname1 = file1.substr(0, file1.size() - 4) + ".xf";
-  string xfname2 = file2.substr(0, file2.size() - 4) + ".xf";
+  std::string file1(c1);
+  std::string file2(c2);
+  std::string xfname1 = file1.substr(0, file1.size() - 4) + ".xf";
+  std::string xfname2 = file2.substr(0, file2.size() - 4) + ".xf";
 
-  cout << "Loading point clouds..." << endl;
+  std::cout << "Loading point clouds..." << std::endl;
 
   // Load point clouds
   pc1.loadPointCloud(file1.c_str());
   pc2.loadPointCloud(file2.c_str());
 
-  cout << "Done loading point clouds!" << endl;
-  cout << "Loading transformation matrices..." << endl;
+  std::cout << "Done loading point clouds!" << std::endl;
+  std::cout << "Loading transformation matrices..." << std::endl;
 
   // Load transformation matrices
-  ifstream xf1(xfname1);
+  std::ifstream xf1(xfname1);
   if (xf1.good()) {
     m1->loadMatrix(xfname1.c_str());
-    cout << "Loaded matrix 1!" << endl;
+    std::cout << "Loaded matrix 1!" << std::endl;
   } else {
     *m1 = Matrix4x4::identity();
-    cout << "Could not find matrix 1; using identity instead!" << endl;
+    std::cout << "Could not find matrix 1; using identity instead!" << std::endl;
   }
 
-  ifstream xf2(xfname2);
+  std::ifstream xf2(xfname2);
   if (xf2.good()) {
     m2->loadMatrix(xfname2.c_str());
-    cout << "Loaded matrix 2!" << endl;
+    std::cout << "Loaded matrix 2!" << std::endl;
   } else {
     *m2 = Matrix4x4::identity();
-    cout << "Could not find matrix 2; using identity instead!" << endl;
+    std::cout << "Could not find matrix 2; using identity instead!" << std::endl;
   }
 }
 
 int main(int argc, const char *argv[]) {
   // (0) Time the entire process
-  clock_t start = clock();
+  std::clock_t start = std::clock();
 
   /* (1) Read in the point clouds and transformations. */
   PointCloud pc1, pc2;
@@ -114,13 +121,13 @@ int main(int argc, const char *argv[]) {
   size_t iterations = 0;
   do {
     /* (2) Randomly pick 1000 points from pc1. */
-    vector<Point> *randoms = pc1.randomPoints(N);
+    std::vector<Point> *randoms = pc1.randomPoints(N);
 
     // (2.1) Precompute transformation from m1's coordinate system to m2's
     m1_to_m2 = m2_inv * m1;
 
     /* (3) For each point in pc1 chosen in (2)... */
-    vector<Point> ps, qs;
+    std::vector<Point> ps, qs;
     for (const Point& rp : *randoms) {
       // (3.1) Apply m1 and then inverse of m2 to pt to create p_i.
       Point p_i = rp.transform(m1_to_m2);
@@ -133,7 +140,7 @@ int main(int argc, const char *argv[]) {
     }
 
     /* (5) For each pair, compute the median point-to-plane distance. */
-    vector<double> dists;
+    std::vector<double> dists;
     Vector3D piv, qiv, qin;
     double point_to_plane_dist;
     for (size_t i = 0; i < N; i++) {
@@ -147,14 +154,14 @@ int main(int argc, const char *argv[]) {
     }
 
     // Make a copy, since median is destructive
-    vector<double> dists_copy = dists;
+    std::vector<double> dists_copy = dists;
 
     // Compute the median point-to-plane distance from all N pairs
     double med = median(dists_copy);
 
     /* (6) Perform outlier rejection. Eliminate point-pairs whose point-to-plane
      * distance is more than 3x the median from (5). */
-    vector<bool> valid(N, true);
+    std::vector<bool> valid(N, true);
     for (size_t i = 0; i < N; i++) {
       if (dists[i] > 3.0 * med) {
         valid[i] = false;
@@ -252,20 +259,20 @@ int main(int argc, const char *argv[]) {
     new_mean = total / count;
 
     ratio = new_mean / valid_mean;
-    cout << "Improvement ratio = " << ratio << endl;
+    std::cout << "Improvement ratio = " << ratio << std::endl;
 
     iterations++;
     /* (12) If ratio of distances in (11) to (7) is less than 0.999, continue. */
   } while (ratio < THRESHOLD);
 
-  cout << "ICP converged after " << iterations << " iterations" << endl;
+  std::cout << "ICP converged after " << iterations << " iterations" << std::endl;
 
   /* (13) Write out new M1 to file1.xf. */
   m1.saveMatrix(argv[1]);
 
   // Report time taken
-  cout << "Time taken: "
-       << (clock() - start) / (double)(CLOCKS_PER_SEC / 1000)
-       << " ms" << endl;
+  std::cout << "Time taken: "
+            << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000)
+            << " ms" << std::endl;
   return 0;
 }

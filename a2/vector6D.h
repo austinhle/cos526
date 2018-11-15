@@ -1,6 +1,6 @@
 /* vector6D.h
  * Author: Austin Le
- * Simple library for a 6-dimensional vector and a limited subset of operations.
+ * Interface for 6D vector.
 */
 
 #ifndef VECTOR6D_H
@@ -8,6 +8,8 @@
 
 #include <cmath>
 #include <iostream>
+
+namespace icp {
 
 class Vector6D {
 public:
@@ -96,5 +98,7 @@ inline Vector6D operator*(const double& c, const Vector6D& v) {
 inline double dot(const Vector6D& u, const Vector6D& v) {
   return u.x*v.x + u.y*v.y + u.z*v.z + u.u*v.u + u.v*v.v + u.w*v.w;
 }
+
+} // namespace icp
 
 #endif

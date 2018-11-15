@@ -1,12 +1,14 @@
 /* matrix4x4.h
  * Author: Austin Le
- * Simple library for a 4x4 matrix and operations.
+ * Interface for 4x4 matrix.
 */
 
 #ifndef MATRIX4X4_H
 #define MATRIX4X4_H
 
 #include "vector4D.h"
+
+namespace icp {
 
 class Matrix4x4 {
 public:
@@ -143,5 +145,7 @@ public:
 private:
   Vector4D columns[4];
 };
+
+} // namespace icp
 
 #endif

@@ -1,12 +1,11 @@
 /* pointcloud.cpp
  * Author: Austin Le
- * Simple library for 3D points and point clouds.
+ * Simple implementation of a 3D point cloud.
 */
 
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <sstream>
 #include <cmath>
 #include <ctime>
 
@@ -21,12 +20,12 @@
 #include "matrix4x4.h"
 #include "vector4D.h"
 
-using namespace std;
+namespace icp {
 
 void PointCloud::loadPointCloud(const char *filename) {
   double cx, cy, cz, nx, ny, nz;
-  ifstream infile;
-  string sfilename(filename);
+  std::ifstream infile;
+  std::string sfilename(filename);
   if (sfilename.compare(sfilename.size() - 4, 4, ".pts") != 0) {
     throw std::invalid_argument("File must be in .pts format");
   }
@@ -61,7 +60,7 @@ Point PointCloud::nearestBruteForce_(Point& p) const {
   double testDist;
   double closestDist = INFINITY;
   Point closestPoint;
-  const vector<Point>& points = getPoints();
+  const std::vector<Point>& points = getPoints();
 
   for (const Point& p2 : points) {
     testDist = p.distanceTo(p2);
@@ -79,12 +78,12 @@ Point PointCloud::nearestKDTree_(Point& p) const {
 }
 
 // Adapted from https://www.gnu.org/software/gsl/doc/html/permutation.html
-vector<Point> *PointCloud::randomPoints(int numPts) const {
+std::vector<Point> *PointCloud::randomPoints(int numPts) const {
   const gsl_rng_type *T;
   gsl_rng *r;
   gsl_permutation *p;
-  vector<Point> *randomPts = new vector<Point>(numPts);
-  const vector<Point> allPts = getPoints();
+  std::vector<Point> *randomPts = new std::vector<Point>(numPts);
+  const std::vector<Point> allPts = getPoints();
 
   // Initialize random number generator
   gsl_rng_env_setup();
@@ -113,3 +112,5 @@ vector<Point> *PointCloud::randomPoints(int numPts) const {
 
   return randomPts;
 }
+
+} // namespace icp

@@ -1,6 +1,6 @@
 /* point.h
  * Author: Austin Le
- * Simple library for 3D points and their normal vectors.
+ * Interface for 3D point.
 */
 
 #ifndef POINT_H
@@ -11,6 +11,8 @@
 #include "vector3D.h"
 #include "vector4D.h"
 #include "matrix4x4.h"
+
+namespace icp {
 
 class Point {
 public:
@@ -58,5 +60,7 @@ public:
   // Output
   friend std::ostream& operator<<(std::ostream& os, const Point& p);
 };
+
+} // namespace icp
 
 #endif

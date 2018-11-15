@@ -1,4 +1,4 @@
-/* kdtree.h
+/* kdtree.cpp
  * Author: Austin Le
  * Simple implementation of a k-dimensional tree storing Point objects.
 */
@@ -9,7 +9,9 @@
 #include "point.h"
 #include "pointcloud.h"
 
-inline double dist2(const KDTreeNode& a, const KDTreeNode& b) {
+namespace icp {
+
+static double dist2(const KDTreeNode& a, const KDTreeNode& b) {
   double d = 0.0;
   for (size_t i = 0; i < K; i++) {
     double c = a.at(i) * b.at(i);
@@ -78,3 +80,5 @@ Point KDTree::nearestPoint(const Point& p) const {
 
   return best->getPoint();
 }
+
+} // namespace icp

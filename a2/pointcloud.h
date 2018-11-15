@@ -1,21 +1,18 @@
 /* pointcloud.h
  * Author: Austin Le
- * Simple library for 3D point clouds.
+ * Interface for 3D point cloud.
 */
 
 #ifndef POINTCLOUD_H
 #define POINTCLOUD_H
 
-#include <iostream>
-#include <cstdlib>
 #include <vector>
 #include <string>
 
 #include "point.h"
 #include "kdtree.h"
-#include "vector3D.h"
-#include "matrix4x4.h"
-#include "vector4D.h"
+
+namespace icp {
 
 class PointCloud {
 public:
@@ -53,5 +50,7 @@ private:
   KDTree tree;
   size_t n;
 };
+
+} // namespace icp
 
 #endif

@@ -1,6 +1,6 @@
 /* point.cpp
  * Author: Austin Le
- * Simple library for 3D points and their normal vectors.
+ * Simple implementation of 3D point.
 */
 
 #include <iostream>
@@ -9,7 +9,7 @@
 #include "matrix4x4.h"
 #include "vector4D.h"
 
-using namespace std;
+namespace icp {
 
 Point Point::transform(const Matrix4x4& m) const {
   Vector4D v = toCoordsVector4D();
@@ -27,3 +27,5 @@ std::ostream& operator<<(std::ostream& os, const Point& p) {
             << p.nx << ", " << p.ny << ", " << p.nz << ">";
   return os;
 }
+
+} // namespace icp

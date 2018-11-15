@@ -1,10 +1,12 @@
 /* vector6D.cpp
  * Author: Austin Le
- * Simple library for a 6-dimensional vector and a limited subset of operations.
+ * Simple implementation of 6D vector.
 */
 
 #include <iostream>
 #include "vector6D.h"
+
+namespace icp {
 
 // Output
 std::ostream& operator<<(std::ostream& os, const Vector6D& ov) {
@@ -12,3 +14,5 @@ std::ostream& operator<<(std::ostream& os, const Vector6D& ov) {
             << ov.u << ", " << ov.v << ", " << ov.w << ">";
   return os;
 }
+
+} // namespace icp

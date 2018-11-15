@@ -1,6 +1,6 @@
 /* vector4D.h
  * Author: Austin Le
- * Simple library for a 4-dimensional vector and a limited subset of operations.
+ * Interface for 4D vector.
 */
 
 #ifndef VECTOR4D_H
@@ -8,6 +8,8 @@
 
 #include <cmath>
 #include <iostream>
+
+namespace icp {
 
 class Vector4D {
 public:
@@ -102,5 +104,7 @@ inline Vector4D operator*(const double& c, const Vector4D& v) {
 inline double dot(const Vector4D& u, const Vector4D& v) {
   return u.x*v.x + u.y*v.y + u.z*v.z + u.w*v.w;
 }
+
+} // namespace icp
 
 #endif

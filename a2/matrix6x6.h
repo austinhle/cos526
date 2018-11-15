@@ -1,12 +1,14 @@
 /* matrix6x6.h
  * Author: Austin Le
- * Simple library for a 6x6 matrix and a limited subset of operations.
+ * Interface for 6x6 matrix.
 */
 
 #ifndef MATRIX6X6_H
 #define MATRIX6X6_H
 
 #include "vector6D.h"
+
+namespace icp {
 
 class Matrix6x6 {
 public:
@@ -32,7 +34,7 @@ public:
                   0., 0., 0., 0., 0., 1.};
     return Matrix6x6(d);
   }
-  
+
   // Transpose
   Matrix6x6 transpose(void) const;
 
@@ -82,5 +84,7 @@ private:
 
 // Outer product of u and v
 Matrix6x6 outer(const Vector6D& u, const Vector6D& v);
+
+} // namespace icp
 
 #endif

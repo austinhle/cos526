@@ -1,6 +1,6 @@
 /* vector3D.h
  * Author: Austin Le
- * Simple library for a 3-dimensional vector and a limited subset of operations.
+ * Interface for 3D vector.
 */
 
 #ifndef VECTOR3D_H
@@ -8,6 +8,8 @@
 
 #include <cmath>
 #include <iostream>
+
+namespace icp {
 
 class Vector3D {
 public:
@@ -103,5 +105,7 @@ inline Vector3D cross(const Vector3D& u, const Vector3D& v) {
                   u.z*v.x - u.x*v.z,
                   u.x*v.y - u.y*v.x);
 }
+
+} // namespace icp
 
 #endif

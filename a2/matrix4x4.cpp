@@ -1,17 +1,15 @@
 /* matrix4x4.cpp
  * Author: Austin Le
- * Simple library for a 4x4 matrix and operations.
- * TODO: Replace in favor of using GSL's native matrix interface.
+ * Simple implementation of 4x4 matrix.
 */
 
 #include <cmath>
-#include <stdexcept>
 #include <fstream>
 #include <iostream>
 
 #include "matrix4x4.h"
 
-using namespace std;
+namespace icp {
 
 // Load matrix from simple ASCII format file
 // Assumes that the file contains 16 values in the following format:
@@ -24,8 +22,8 @@ void Matrix4x4::loadMatrix(const char* filename) {
   double d1, d2, d3, d4;
   int count = 0;
 
-  ifstream infile;
-  string sfilename(filename);
+  std::ifstream infile;
+  std::string sfilename(filename);
   if (sfilename.compare(sfilename.size() - 3, 3, ".xf") != 0) {
     throw std::invalid_argument("File must be in .xf format");
   }
@@ -48,10 +46,10 @@ void Matrix4x4::loadMatrix(const char* filename) {
 }
 
 void Matrix4x4::saveMatrix(const char *filename) const {
-  string fname(filename);
-  string xfname = fname.substr(0, fname.size() - 4) + ".xf";
+  std::string fname(filename);
+  std::string xfname = fname.substr(0, fname.size() - 4) + ".xf";
 
-  ofstream outfile(xfname);
+  std::ofstream outfile(xfname);
   if (outfile.is_open()) {
     // TODO: Write out the matrix!
     outfile << (*this);
@@ -278,10 +276,12 @@ void Matrix4x4::operator/=(double c) {
   }
 }
 
-ostream& operator<<(ostream& os, const Matrix4x4& m) {
-  os << m(0, 0) << " " << m(0, 1) << " " << m(0, 2) << " " << m(0, 3) << endl;
-  os << m(1, 0) << " " << m(1, 1) << " " << m(1, 2) << " " << m(1, 3) << endl;
-  os << m(2, 0) << " " << m(2, 1) << " " << m(2, 2) << " " << m(2, 3) << endl;
-  os << m(3, 0) << " " << m(3, 1) << " " << m(3, 2) << " " << m(3, 3) << endl;
+std::ostream& operator<<(std::ostream& os, const Matrix4x4& m) {
+  os << m(0, 0) << " " << m(0, 1) << " " << m(0, 2) << " " << m(0, 3) << std::endl;
+  os << m(1, 0) << " " << m(1, 1) << " " << m(1, 2) << " " << m(1, 3) << std::endl;
+  os << m(2, 0) << " " << m(2, 1) << " " << m(2, 2) << " " << m(2, 3) << std::endl;
+  os << m(3, 0) << " " << m(3, 1) << " " << m(3, 2) << " " << m(3, 3) << std::endl;
   return os;
 }
+
+} // namespace icp

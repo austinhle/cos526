@@ -1,6 +1,6 @@
 /* kdtree.h
  * Author: Austin Le
- * Simple implementation of a k-dimensional tree storing Point objects.
+ * Interface for k-dimensional tree storing Point objects.
 */
 
 #ifndef KDTREE_H
@@ -9,6 +9,8 @@
 #include <cstdlib>
 
 #include "point.h"
+
+namespace icp {
 
 const size_t K = 3;
 
@@ -58,5 +60,7 @@ private:
   // Variables
   KDTreeNode *root;
 };
+
+} // namespace icp
 
 #endif
