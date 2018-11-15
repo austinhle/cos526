@@ -53,7 +53,11 @@ void PointCloud::initKDTree(void) {
   }
 }
 
-Point PointCloud::nearestBruteForce(Point& p) const {
+Point PointCloud::nearest(Point &p) const {
+  return nearestKDTree_(p);
+}
+
+Point PointCloud::nearestBruteForce_(Point& p) const {
   double testDist;
   double closestDist = INFINITY;
   Point closestPoint;
@@ -70,7 +74,7 @@ Point PointCloud::nearestBruteForce(Point& p) const {
   return closestPoint;
 }
 
-Point PointCloud::nearestKDTree(Point& p) const {
+Point PointCloud::nearestKDTree_(Point& p) const {
   return tree.nearestPoint(p);
 }
 

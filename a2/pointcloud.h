@@ -28,11 +28,8 @@ public:
   // Construct a KD-tree from all points
   void initKDTree(void);
 
-  // Return the closest point in the point cloud to p using brute-force search
-  Point nearestBruteForce(Point& p) const;
-
-  // Return the closest point in the point cloud to p using a kd-tree
-  Point nearestKDTree(Point& p) const;
+  // Return the closest point in the point cloud to p
+  Point nearest(Point &p) const;
 
   // Return a vector of n random points in the point cloud
   std::vector<Point>* randomPoints(int n) const;
@@ -40,11 +37,18 @@ public:
   // Getters
   inline std::vector<Point>& getPoints() { return points; }
   inline const std::vector<Point>& getPoints() const { return points; }
-  inline size_t size() const { return n; }
+  inline size_t size() { return n; }
+  inline const size_t size() const { return n; }
   inline KDTree& getTree() { return tree; }
   inline const KDTree& getTree() const { return tree; }
 
 private:
+  // Return the closest point in the point cloud to p using brute-force search
+  Point nearestBruteForce_(Point& p) const;
+
+  // Return the closest point in the point cloud to p using a kd-tree
+  Point nearestKDTree_(Point& p) const;
+
   std::vector<Point> points;
   KDTree tree;
   size_t n;

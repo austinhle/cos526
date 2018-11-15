@@ -40,13 +40,20 @@ public:
   KDTree(void) : root(NULL) {}
 
   // Insert a 3-dimensional data point, return root of modified subtree
-  KDTreeNode *insert_(Point& p, size_t level, KDTreeNode *node);
   KDTreeNode *insert(Point& p);
 
   // Return nearest 3-dimensional point to v
-  void nearestPoint_(const Point& p, size_t level, KDTreeNode *node,
-    KDTreeNode *best, double *best_dist) const;
   Point nearestPoint(const Point& p) const;
+
+  // Getters
+  inline KDTreeNode *getRoot(void) { return root; }
+  inline const KDTreeNode *getRoot(void) const { return root; }
+
+private:
+  KDTreeNode *insert_(Point& p, size_t level, KDTreeNode *node);
+
+  void nearestPoint_(const Point& p, size_t level, KDTreeNode *node,
+    KDTreeNode **best, double *best_dist) const;
 
   // Variables
   KDTreeNode *root;

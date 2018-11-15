@@ -6,6 +6,7 @@
 #include <cstdlib>
 
 #include "kdtree.h"
+#include "point.h"
 #include "pointcloud.h"
 
 inline double dist2(const KDTreeNode& a, const KDTreeNode& b) {
@@ -44,12 +45,34 @@ KDTreeNode *KDTree::insert(Point& p) {
 
 void KDTree::nearestPoint_(const Point& p, size_t level, KDTreeNode *node,
   KDTreeNode **best, double *best_dist) const {
-    
+
+  if (node == NULL) return;
+
+  double d = p.distanceTo(node->getPoint());
+  double d2 = d * d; // Squared distance
+  if (d2 < *best_dist) {
+    *best_dist = d2;
+    *best = node;
+  }
+
+  double diff = node->at(level % K) - p[level % K];
+  double diff2 = diff * diff;
+
+  // Explore further to left or right child
+  nearestPoint_(p, level + 1, (diff > 0.0) ? node->left : node->right,
+    best, best_dist);
+
+  // If we didn't find better down that path, then also search the other path
+  if (diff2 < *best_dist) {
+    nearestPoint_(p, level + 1, (diff > 0.0) ? node->right : node->left,
+    best, best_dist);
+  }
 }
 
 Point KDTree::nearestPoint(const Point& p) const {
   KDTreeNode *best;
-  double best_dist;
+  double start_dist = p.distanceTo(root->getPoint());
+  double best_dist = start_dist * start_dist;
 
   nearestPoint_(p, 0, root, &best, &best_dist);
 

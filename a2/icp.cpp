@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <numeric>
+#include <ctime>
 
 #include <gsl/gsl_linalg.h>
 
@@ -95,6 +96,9 @@ static void loadData(const char* c1, const char* c2,
 }
 
 int main(int argc, const char *argv[]) {
+  // (0) Time the entire process
+  clock_t start = clock();
+
   /* (1) Read in the point clouds and transformations. */
   PointCloud pc1, pc2;
   Matrix4x4 m1, m2, m2_inv, m1_to_m2;
@@ -105,9 +109,8 @@ int main(int argc, const char *argv[]) {
   pc1.initKDTree();
   pc2.initKDTree();
 
-  // Variables to store mean point-to-plane distances
-  // Used to determine convergence/stopping condition
-  double valid_mean, new_mean;
+  // Variables to determine convergence/stopping condition
+  double valid_mean, new_mean, ratio;
   size_t iterations = 0;
   do {
     /* (2) Randomly pick 1000 points from pc1. */
@@ -125,15 +128,15 @@ int main(int argc, const char *argv[]) {
 
       /* (4) For this p_i, find the closest point in pc2, called q_i.
        * Each q_i has normal n_i within it. */
-      Point q_i = pc2.nearestBruteForce(p_i);
+      Point q_i = pc2.nearest(p_i);
       qs.push_back(q_i);
     }
 
     /* (5) For each pair, compute the median point-to-plane distance. */
     vector<double> dists;
+    Vector3D piv, qiv, qin;
+    double point_to_plane_dist;
     for (size_t i = 0; i < N; i++) {
-      Vector3D piv, qiv, qin;
-      double point_to_plane_dist;
       piv = ps[i].toCoordsVector3D();
       qiv = qs[i].toCoordsVector3D();
       qin = qs[i].toNormalVector3D();
@@ -148,11 +151,9 @@ int main(int argc, const char *argv[]) {
 
     // Compute the median point-to-plane distance from all N pairs
     double med = median(dists_copy);
-    cout << "==DEBUG== Median of all N is: " << med << endl;
 
     /* (6) Perform outlier rejection. Eliminate point-pairs whose point-to-plane
-     * distance is more than 3x the median from (5).
-     */
+     * distance is more than 3x the median from (5). */
     vector<bool> valid(N, true);
     for (size_t i = 0; i < N; i++) {
       if (dists[i] > 3.0 * med) {
@@ -170,23 +171,23 @@ int main(int argc, const char *argv[]) {
       }
     }
     valid_mean = total / count;
-    cout << "==DEBUG== Mean of valid is: " << valid_mean << endl;
 
     /* (8) For each point i, construct matrix C_i and vector d_i.
      * Sum up all matrices C_i into a matrix C.
-     * Sum up all vectors d_i into a vector d.
-     */
+     * Sum up all vectors d_i into a vector d. */
+
     // Accumulated terms
     Matrix6x6 C;
     Vector6D d;
+
+    // Intermediate terms
+    Matrix6x6 C_i;
+    Vector6D A_i, d_i;
+    Vector3D p_cross_n;
+    double b_i;
+
     for (size_t i = 0; i < N; i++) {
       if (valid[i]) {
-        // Intermediate terms
-        Matrix6x6 C_i;
-        Vector6D A_i, d_i;
-        Vector3D p_cross_n, piv, qiv, qin;
-        double b_i;
-
         // Initialize vectors for computation
         piv = ps[i].toCoordsVector3D();
         qiv = qs[i].toCoordsVector3D();
@@ -218,8 +219,7 @@ int main(int argc, const char *argv[]) {
 
     /* (9) Solve Cx = d.
      * x is a 6x1 vector containing (Rx, Ry, Rz, Tx, Ty, Tz).
-     * Construct M_icp from T*Rz*Ry*Rx.
-     */
+     * Construct M_icp from T*Rz*Ry*Rx. */
     Vector6D x;
     solve(C, d, x);
     Matrix4x4 r, t, m_icp;
@@ -231,13 +231,10 @@ int main(int argc, const char *argv[]) {
     m1 = m2 * m_icp * m2_inv * m1;
 
     /* (11) Update all p_i from (6) by transforming them by M_icp.
-     * Recompute mean point-to-plane distance.
-     */
+     * Recompute mean point-to-plane distance. */
     total = 0.0;
     count = 0;
     for (size_t i = 0; i < N; i++) {
-      Vector3D piv, qiv, qin;
-      double point_to_plane_dist;
       if (valid[i]) {
         // Update all valid p_i with M_icp
         ps[i] = ps[i].transform(m_icp);
@@ -253,17 +250,22 @@ int main(int argc, const char *argv[]) {
       }
     }
     new_mean = total / count;
-    cout << "==DEBUG== Mean after update is: " << new_mean << endl;
-    cout << "Ratio of new_mean / valid_mean is: " << new_mean / valid_mean << endl;
+
+    ratio = new_mean / valid_mean;
+    cout << "Improvement ratio = " << ratio << endl;
 
     iterations++;
     /* (12) If ratio of distances in (11) to (7) is less than 0.999, continue. */
-  } while ((new_mean / valid_mean) < THRESHOLD);
+  } while (ratio < THRESHOLD);
 
-  cout << "==DEBUG== ICP converged after " << iterations << " iterations" << endl;
+  cout << "ICP converged after " << iterations << " iterations" << endl;
 
   /* (13) Write out new M1 to file1.xf. */
   m1.saveMatrix(argv[1]);
 
+  // Report time taken
+  cout << "Time taken: "
+       << (clock() - start) / (double)(CLOCKS_PER_SEC / 1000)
+       << " ms" << endl;
   return 0;
 }
