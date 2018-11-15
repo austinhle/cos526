@@ -72,7 +72,7 @@ void KDTree::nearestPoint_(const Point& p, size_t level, KDTreeNode *node,
 }
 
 Point KDTree::nearestPoint(const Point& p) const {
-  KDTreeNode *best;
+  KDTreeNode *best = root;
   double start_dist = p.distanceTo(root->getPoint());
   double best_dist = start_dist * start_dist;
 

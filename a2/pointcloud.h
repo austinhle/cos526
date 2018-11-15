@@ -17,7 +17,7 @@ namespace icp {
 class PointCloud {
 public:
   // Default constructor
-  PointCloud(void) {}
+  PointCloud(void) : num_points(0) {}
 
   // Load point cloud from a given .pts file
   void loadPointCloud(const char* filename);
@@ -28,16 +28,16 @@ public:
   // Return the closest point in the point cloud to p
   Point nearest(Point &p) const;
 
-  // Return a vector of n random points in the point cloud
-  std::vector<Point>* randomPoints(int n) const;
+  // Return a vector of num random points in the point cloud
+  std::vector<Point>* randomPoints(int num) const;
 
   // Getters
-  inline std::vector<Point>& getPoints() { return points; }
-  inline const std::vector<Point>& getPoints() const { return points; }
-  inline size_t size() { return n; }
-  inline const size_t size() const { return n; }
-  inline KDTree& getTree() { return tree; }
-  inline const KDTree& getTree() const { return tree; }
+  inline std::vector<Point>& getPoints(void) { return points; }
+  inline const std::vector<Point>& getPoints(void) const { return points; }
+  inline size_t size(void) { return num_points; }
+  inline const size_t size(void) const { return num_points; }
+  inline KDTree& getTree(void) { return tree; }
+  inline const KDTree& getTree(void) const { return tree; }
 
 private:
   // Return the closest point in the point cloud to p using brute-force search
@@ -48,7 +48,7 @@ private:
 
   std::vector<Point> points;
   KDTree tree;
-  size_t n;
+  size_t num_points;
 };
 
 } // namespace icp

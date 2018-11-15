@@ -16,12 +16,6 @@ namespace icp {
 
 class Point {
 public:
-  // Coordinates of the point
-  double cx, cy, cz;
-
-  // Vector components of the point's normal
-  double nx, ny, nz;
-
   // Default constructor
   Point(void) {}
 
@@ -59,6 +53,13 @@ public:
 
   // Output
   friend std::ostream& operator<<(std::ostream& os, const Point& p);
+
+private:
+  // Coordinates of the point
+  double cx, cy, cz;
+
+  // Vector components of the point's normal
+  double nx, ny, nz;
 };
 
 } // namespace icp

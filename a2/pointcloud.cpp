@@ -31,14 +31,11 @@ void PointCloud::loadPointCloud(const char *filename) {
   }
   infile.open(filename);
 
-  // Initialize instance variable to count number of points
-  n = 0;
-
   if (infile.is_open()) {
     // Read a line of 6 doubles at a time
     while (infile >> cx >> cy >> cz >> nx >> ny >> nz) {
       points.push_back(Point(cx, cy, cz, nx, ny, nz));
-      n++;
+      num_points++;
     }
     infile.close();
   } else {
@@ -78,11 +75,10 @@ Point PointCloud::nearestKDTree_(Point& p) const {
 }
 
 // Adapted from https://www.gnu.org/software/gsl/doc/html/permutation.html
-std::vector<Point> *PointCloud::randomPoints(int numPts) const {
-  const gsl_rng_type *T;
+std::vector<Point> *PointCloud::randomPoints(int num) const {
   gsl_rng *r;
   gsl_permutation *p;
-  std::vector<Point> *randomPts = new std::vector<Point>(numPts);
+  std::vector<Point> *randomPts = new std::vector<Point>(num);
   const std::vector<Point> allPts = getPoints();
 
   // Initialize random number generator
@@ -95,14 +91,14 @@ std::vector<Point> *PointCloud::randomPoints(int numPts) const {
   gsl_rng_set(r, tm.tv_nsec);
 
   // Initialize permutation
-  p = gsl_permutation_alloc(n);
+  p = gsl_permutation_alloc(num_points);
   gsl_permutation_init(p);
 
   // Create random permutation
-  gsl_ran_shuffle(r, p->data, n, sizeof(size_t));
+  gsl_ran_shuffle(r, p->data, num_points, sizeof(size_t));
 
   // Use values from random permutation to select numPts
-  for (size_t i = 0; i < numPts; i++) {
+  for (size_t i = 0; i < num; i++) {
     (*randomPts)[i] = (allPts[p->data[i]]);
   }
 

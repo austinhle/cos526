@@ -20,7 +20,7 @@ namespace icp {
 void Matrix4x4::loadMatrix(const char* filename) {
   Matrix4x4& A(*this);
   double d1, d2, d3, d4;
-  int count = 0;
+  size_t count = 0;
 
   std::ifstream infile;
   std::string sfilename(filename);
@@ -59,7 +59,6 @@ void Matrix4x4::saveMatrix(const char *filename) const {
   }
 }
 
-
 // Determinant
 double Matrix4x4::det(void) const {
   const Matrix4x4& A(*this);
@@ -76,14 +75,6 @@ double Matrix4x4::det(void) const {
 	  A(0,2)*A(1,1)*A(2,0)*A(3,3) + A(0,1)*A(1,2)*A(2,0)*A(3,3) +
 	  A(0,2)*A(1,0)*A(2,1)*A(3,3) - A(0,0)*A(1,2)*A(2,1)*A(3,3) -
 	  A(0,1)*A(1,0)*A(2,2)*A(3,3) + A(0,0)*A(1,1)*A(2,2)*A(3,3);
-}
-
-// Frobenius norm
-double Matrix4x4::norm(void) const {
-  return sqrt(columns[0].norm2() +
-              columns[1].norm2() +
-              columns[2].norm2() +
-              columns[3].norm2());
 }
 
 // Transpose
