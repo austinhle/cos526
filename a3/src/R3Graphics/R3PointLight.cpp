@@ -22,7 +22,7 @@ RN_CLASS_TYPE_DEFINITIONS(R3PointLight);
 
 /* Public functions */
 
-int 
+int
 R3InitPointLight()
 {
     /* Return success */
@@ -31,7 +31,7 @@ R3InitPointLight()
 
 
 
-void 
+void
 R3StopPointLight()
 {
 }
@@ -159,7 +159,7 @@ SphereOfInfluence(RNScalar intensity_threshold) const
 
 
 RNRgb R3PointLight::
-DiffuseReflection(const R3Brdf& brdf, 
+DiffuseReflection(const R3Brdf& brdf,
     const R3Point& point, const R3Vector& normal) const
 {
     // Check if light is active
@@ -184,7 +184,7 @@ DiffuseReflection(const R3Brdf& brdf,
 
 
 RNRgb R3PointLight::
-SpecularReflection(const R3Brdf& brdf, const R3Point& eye, 
+SpecularReflection(const R3Brdf& brdf, const R3Point& eye,
     const R3Point& point, const R3Vector& normal) const
 {
     // Check if light is active
@@ -215,7 +215,7 @@ SpecularReflection(const R3Brdf& brdf, const R3Point& eye,
 
 
 RNRgb R3PointLight::
-Reflection(const R3Brdf& brdf, const R3Point& eye, 
+Reflection(const R3Brdf& brdf, const R3Point& eye,
     const R3Point& point, const R3Vector& normal) const
 {
     // Check if light is active
@@ -249,7 +249,21 @@ Reflection(const R3Brdf& brdf, const R3Point& eye,
     return rgb;
 }
 
+void R3PointLight::
+EmitPhoton(R3Point *origin, R3Vector *direction) const
+{
+  // Use rejection sampling to find a diffuse photon direction
+  double x, y, z;
+  do {
+    x = 2.0 * RNRandomScalar() - 1.0;
+    y = 2.0 * RNRandomScalar() - 1.0;
+    z = 2.0 * RNRandomScalar() - 1.0;
+  } while (x * x + y * y + z * z > 1.0);
+  *direction = R3Vector(x, y, z);
 
+  // Set origin of photon to be point light's position
+  *origin = Position();
+}
 
 void R3PointLight::
 Draw(int i) const
@@ -279,6 +293,3 @@ Draw(int i) const
     glLightf(index, GL_LINEAR_ATTENUATION, buffer[1]);
     glLightf(index, GL_QUADRATIC_ATTENUATION, buffer[2]);
 }
-
-
-

@@ -22,7 +22,7 @@ RN_CLASS_TYPE_DEFINITIONS(R3SpotLight);
 
 /* Public functions */
 
-int 
+int
 R3InitSpotLight()
 {
     /* Return success */
@@ -31,7 +31,7 @@ R3InitSpotLight()
 
 
 
-void 
+void
 R3StopSpotLight()
 {
 }
@@ -114,7 +114,10 @@ IntensityAtPoint(const R3Point& point) const
     else return (I * pow(cos_alpha, dropoffrate));
 }
 
-
+void R3SpotLight::
+EmitPhoton(R3Point *origin, R3Vector *direction) const
+{
+}
 
 void R3SpotLight::
 Draw(int i) const
@@ -150,8 +153,3 @@ Draw(int i) const
     glLightf(index, GL_QUADRATIC_ATTENUATION, buffer[2]);
     glEnable(index);
 }
-
-
-
-
-

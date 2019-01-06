@@ -23,7 +23,7 @@ RN_CLASS_TYPE_DEFINITIONS(R3DirectionalLight);
 
 /* Public functions */
 
-int 
+int
 R3InitDirectionalLight()
 {
     /* Return success */
@@ -32,7 +32,7 @@ R3InitDirectionalLight()
 
 
 
-void 
+void
 R3StopDirectionalLight()
 {
 }
@@ -80,7 +80,7 @@ SetDirection(const R3Vector& direction)
 
 
 RNRgb R3DirectionalLight::
-DiffuseReflection(const R3Brdf& brdf, 
+DiffuseReflection(const R3Brdf& brdf,
     const R3Point& point, const R3Vector& normal) const
 {
     // Check if light is active
@@ -105,7 +105,7 @@ DiffuseReflection(const R3Brdf& brdf,
 
 
 RNRgb R3DirectionalLight::
-SpecularReflection(const R3Brdf& brdf, const R3Point& eye, 
+SpecularReflection(const R3Brdf& brdf, const R3Point& eye,
     const R3Point& point, const R3Vector& normal) const
 {
     // Check if light is active
@@ -136,7 +136,7 @@ SpecularReflection(const R3Brdf& brdf, const R3Point& eye,
 
 
 RNRgb R3DirectionalLight::
-Reflection(const R3Brdf& brdf, const R3Point& eye, 
+Reflection(const R3Brdf& brdf, const R3Point& eye,
     const R3Point& point, const R3Vector& normal) const
 {
     // Check if light is active
@@ -170,7 +170,21 @@ Reflection(const R3Brdf& brdf, const R3Point& eye,
     return rgb;
 }
 
+void R3DirectionalLight::
+EmitPhoton(R3Point *origin, R3Vector *direction) const
+{
+  // TODO: Need to sample from a disk at this plane
 
+  // Compute a location outside of the scene
+  R3Scene *scene = Scene();
+  double radius = scene->BBox().DiagonalRadius();
+  R3Point centroid = scene->BBox().Centroid();
+  R3Point pos = centroid - radius * this->direction;
+  *origin = pos;
+
+  // Photon's direction is the same as the light's direction
+  *direction = this->direction;
+}
 
 void R3DirectionalLight::
 Draw(int i) const
@@ -194,6 +208,3 @@ Draw(int i) const
     glLightf(index, GL_SPOT_CUTOFF, buffer[0]);
     glEnable(index);
 }
-
-
-

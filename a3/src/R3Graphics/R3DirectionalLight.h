@@ -16,7 +16,7 @@ class R3DirectionalLight : public R3Light {
         // Constructor functions
 	R3DirectionalLight(void);
         R3DirectionalLight(const R3DirectionalLight& light);
-        R3DirectionalLight(const R3Vector& direction, const RNRgb& color, 
+        R3DirectionalLight(const R3Vector& direction, const RNRgb& color,
             RNScalar intensity = 1.0, RNBoolean active = TRUE);
 
 	// Property functions/operators
@@ -26,15 +26,18 @@ class R3DirectionalLight : public R3Light {
   	virtual void SetDirection(const R3Vector& direction);
 
 	// Reflection evaluation functions
-	virtual RNRgb Reflection(const R3Brdf& brdf, const R3Point& eye, 
+	virtual RNRgb Reflection(const R3Brdf& brdf, const R3Point& eye,
 	    const R3Point& point, const R3Vector& normal) const;
-	virtual RNRgb DiffuseReflection(const R3Brdf& brdf, 
+	virtual RNRgb DiffuseReflection(const R3Brdf& brdf,
 	    const R3Point& point, const R3Vector& normal) const;
-	virtual RNRgb SpecularReflection(const R3Brdf& brdf, const R3Point& eye, 
+	virtual RNRgb SpecularReflection(const R3Brdf& brdf, const R3Point& eye,
 	    const R3Point& point, const R3Vector& normal) const;
 
+  // Photon mapping functions
+  virtual void EmitPhoton(R3Point *origin, R3Vector *direction) const;
+
 	// Draw functions/operations
-        virtual void Draw(int i) const;
+  virtual void Draw(int i) const;
 
 	// Class type definitions
 	RN_CLASS_TYPE_DECLARATIONS(R3DirectionalLight);
@@ -57,10 +60,6 @@ extern R3DirectionalLight R3default_directional_light;
 inline const R3Vector& R3DirectionalLight::
 Direction(void) const
 {
-    // Return direction 
+    // Return direction
     return direction;
 }
-
-
-
-

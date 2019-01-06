@@ -23,7 +23,7 @@ RNRgb R3ambient_light_color(1.0, 1.0, 1.0);
 
 /* Public functions */
 
-int 
+int
 R3InitLight()
 {
     /* Return success */
@@ -32,7 +32,7 @@ R3InitLight()
 
 
 
-void 
+void
 R3StopLight()
 {
 }
@@ -140,6 +140,3 @@ SetColor(const RNRgb& color)
     // Set color
     this->color = color;
 }
-
-
-

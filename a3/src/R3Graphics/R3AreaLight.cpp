@@ -22,7 +22,7 @@ RN_CLASS_TYPE_DEFINITIONS(R3AreaLight);
 
 /* Public functions */
 
-int 
+int
 R3InitAreaLight()
 {
     /* Return success */
@@ -31,7 +31,7 @@ R3InitAreaLight()
 
 
 
-void 
+void
 R3StopAreaLight()
 {
 }
@@ -127,7 +127,7 @@ SetQuadraticAttenuation(RNScalar qa)
 
 
 RNRgb R3AreaLight::
-DiffuseReflection(const R3Brdf& brdf, 
+DiffuseReflection(const R3Brdf& brdf,
     const R3Point& point, const R3Vector& normal) const
 {
     // Parameter ????
@@ -162,7 +162,7 @@ DiffuseReflection(const R3Brdf& brdf,
         sample_point += r1 * Radius() * axis1;
         sample_point += r2 * Radius() * axis2;
         sample_count++;
-        
+
         // Compute intensity at point
         RNScalar I = Intensity();
         RNLength d = R3Distance(point, sample_point);
@@ -194,7 +194,7 @@ DiffuseReflection(const R3Brdf& brdf,
 
 
 RNRgb R3AreaLight::
-SpecularReflection(const R3Brdf& brdf, const R3Point& eye, 
+SpecularReflection(const R3Brdf& brdf, const R3Point& eye,
     const R3Point& point, const R3Vector& normal) const
 {
     // Parameter ????
@@ -266,7 +266,7 @@ SpecularReflection(const R3Brdf& brdf, const R3Point& eye,
 
 
 RNRgb R3AreaLight::
-Reflection(const R3Brdf& brdf, const R3Point& eye, 
+Reflection(const R3Brdf& brdf, const R3Point& eye,
     const R3Point& point, const R3Vector& normal) const
 {
     // Return total reflection
@@ -275,7 +275,39 @@ Reflection(const R3Brdf& brdf, const R3Point& eye,
     return diffuse + specular;
 }
 
+void R3AreaLight::
+EmitPhoton(R3Point *origin, R3Vector *direction) const
+{
+  // Use rejection sampling to sample a point on the circular area light
+  RNScalar r1, r2;
+  do {
+    r1 = RNRandomScalar();
+    r2 = RNRandomScalar();
+  } while (r1*r1 + r2*r2 > 1);
 
+  // Get circle axes
+  R3Vector dir = circle.Normal();
+  RNDimension dim = dir.MinDimension();
+  R3Vector axis1 = dir % R3xyz_triad[dim];
+  axis1.Normalize();
+  R3Vector axis2 = dir % axis1;
+  axis2.Normalize();
+
+  R3Point sample_point = Position();
+  sample_point += r1 * Radius() * axis1;
+  sample_point += r2 * Radius() * axis2;
+  *origin = sample_point;
+
+  // Use inversion method to uniformly sample a direction on the hemisphere
+  RNScalar e1 = RNRandomScalar();
+  RNScalar e2 = RNRandomScalar();
+  double x = cos(2.0 * RN_PI * e2) * sqrt(1.0 - pow(1.0 - e1, 2));
+  double y = sin(2.0 * RN_PI * e2) * sqrt(1.0 - pow(1.0 - e1, 2));
+  double z = 1.0 - e1;
+
+  // TODO: Need to align this direction to the area light's existing direction
+  *direction = R3Vector(x, y, z);
+}
 
 void R3AreaLight::
 Draw(int i) const
@@ -305,6 +337,3 @@ Draw(int i) const
     glLightf(index, GL_LINEAR_ATTENUATION, buffer[1]);
     glLightf(index, GL_QUADRATIC_ATTENUATION, buffer[2]);
 }
-
-
-

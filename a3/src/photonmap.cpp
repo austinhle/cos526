@@ -8,6 +8,9 @@
 #include "fglut/fglut.h"
 #include "render.h"
 
+// Forward class declarations
+struct Photon;
+class PhotonMap;
 
 
 // Program variables
@@ -39,6 +42,8 @@ static R3Viewer *viewer = NULL;
 static R3Scene *scene = NULL;
 static R3Point center(0, 0, 0);
 
+static PhotonMap *global_photon_map = NULL;
+static PhotonMap *caustic_photon_map = NULL;
 
 
 // Display variables
@@ -48,6 +53,8 @@ static int show_camera = 0;
 static int show_lights = 0;
 static int show_bboxes = 0;
 static int show_rays = 0;
+static int show_global_photons = 0;
+static int show_caustic_photons = 0;
 static int show_frame_rate = 0;
 
 
@@ -265,6 +272,11 @@ DrawRays(R3Scene *scene)
 }
 
 
+static void
+DrawPhotons(PhotonMap *map)
+{
+  // TODO: Implement!
+}
 
 ////////////////////////////////////////////////////////////////////////
 // Glut user interface functions
@@ -321,6 +333,24 @@ void GLUTRedraw(void)
     glColor3d(0.0, 1.0, 0.0);
     glLineWidth(3);
     DrawRays(scene);
+    glLineWidth(1);
+  }
+
+  // Draw global photons
+  if (show_global_photons) {
+    glEnable(GL_LIGHTING);
+    glColor3d(1.0, 0.0, 0.0);
+    glLineWidth(3);
+    DrawPhotons(global_photon_map);
+    glLineWidth(1);
+  }
+
+  // Draw caustic photons
+  if (show_caustic_photons) {
+    glEnable(GL_LIGHTING);
+    glColor3d(0.0, 0.0, 1.0);
+    glLineWidth(3);
+    DrawPhotons(caustic_photon_map);
     glLineWidth(1);
   }
 
@@ -597,7 +627,6 @@ void GLUTMainLoop(void)
 }
 
 
-
 ////////////////////////////////////////////////////////////////////////
 // Input/output
 ////////////////////////////////////////////////////////////////////////
@@ -705,6 +734,56 @@ ParseArgs(int argc, char **argv)
 }
 
 
+////////////////////////////////////////////////////////////////////////
+// Photon tracing
+////////////////////////////////////////////////////////////////////////
+
+struct Photon {
+  R3Point position;   // position
+  R3Vector direction; // incident direction
+  RNRgb power;        // color (power)
+};
+
+static R3Point
+GetPhotonPosition(Photon *photon, void *dummy)
+{
+  R3Point pos = photon->position;
+  return R3Point(pos.X(), pos.Y(), pos.Z());
+}
+
+class PhotonMap {
+public:
+  // Constructor
+  PhotonMap(void) {}
+
+  // Getters
+  const R3Kdtree<Photon *> *Tree(void) const { return tree; }
+  const RNArray<Photon *>& Intersections(void) const { return intersections; }
+
+  // Photon tracing functions
+  int EmitPhotons(void);
+  void TracePhoton(Photon *photon);
+
+private:
+  R3Kdtree<Photon *> *tree;
+  RNArray<Photon *> intersections;
+};
+
+int PhotonMap::EmitPhotons(void) {
+  tree = new R3Kdtree<Photon *>(intersections, GetPhotonPosition);
+  if (!tree) {
+    fprintf(stderr, "Unable to create KD tree\n");
+    return 0;
+  }
+
+  return 1;
+}
+
+void PhotonMap::TracePhoton(Photon *photon) {
+
+}
+
+
 
 ////////////////////////////////////////////////////////////////////////
 // Main program
@@ -724,7 +803,13 @@ int main(int argc, char **argv)
     // Set scene viewport
     scene->SetViewport(R2Viewport(0, 0, render_image_width, render_image_height));
 
-    // TODO: Maybe create the photon map here and then pass it into the renderer
+    // Initialize photon maps
+    // global_photon_map = new PhotonMap();
+    // caustic_photon_map = new PhotonMap();
+
+    // Perform photon-tracing to fill out photon maps
+    // if (!global_photon_map->EmitPhotons()) { exit(-1); }
+    // if (!caustic_photon_map->EmitPhotons()) { exit(-1); }
 
     // Render image
     R2Image *image = RenderImage(scene, render_image_width, render_image_height, print_verbose);

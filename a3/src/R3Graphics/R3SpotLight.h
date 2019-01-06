@@ -34,8 +34,11 @@ class R3SpotLight : public R3PointLight {
 	// Evaluation functions
 	virtual RNScalar IntensityAtPoint(const R3Point& point) const;
 
+  // Photon mapping functions
+  virtual void EmitPhoton(R3Point *origin, R3Vector *direction) const;
+
 	// Draw functions/operations
-        virtual void Draw(int i) const;
+  virtual void Draw(int i) const;
 
 	// Class type definitions
 	RN_CLASS_TYPE_DECLARATIONS(R3SpotLight);
@@ -59,7 +62,7 @@ extern R3SpotLight R3null_spot_light;
 inline const R3Vector& R3SpotLight::
 Direction(void) const
 {
-    // Return direction 
+    // Return direction
     return direction;
 }
 
@@ -68,7 +71,7 @@ Direction(void) const
 inline const RNScalar R3SpotLight::
 DropOffRate(void) const
 {
-    // Return drop off rate 
+    // Return drop off rate
     return dropoffrate;
 }
 
@@ -77,11 +80,6 @@ DropOffRate(void) const
 inline const RNAngle R3SpotLight::
 CutOffAngle(void) const
 {
-    // Return cut off angle 
+    // Return cut off angle
     return cutoffangle;
 }
-
-
-
-
-

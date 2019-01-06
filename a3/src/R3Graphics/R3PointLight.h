@@ -16,7 +16,7 @@ class R3PointLight : public R3Light {
         // Constructor functions
 	R3PointLight(void);
         R3PointLight(const R3PointLight& light);
-        R3PointLight(const R3Point& position, const RNRgb& color, 
+        R3PointLight(const R3Point& position, const RNRgb& color,
             RNScalar intensity = 1.0, RNBoolean active = TRUE,
             RNScalar ca = 0, RNScalar la = 0, RNScalar qa = 1);
 
@@ -28,9 +28,9 @@ class R3PointLight : public R3Light {
 
 	// Manipulation functions/operations
   	virtual void SetPosition(const R3Point& position);
-        virtual void SetConstantAttenuation(RNScalar ca); 
-        virtual void SetLinearAttenuation(RNScalar la); 
-        virtual void SetQuadraticAttenuation(RNScalar qa); 
+        virtual void SetConstantAttenuation(RNScalar ca);
+        virtual void SetLinearAttenuation(RNScalar la);
+        virtual void SetQuadraticAttenuation(RNScalar qa);
 
 	// Geometry evaluation functions
 	virtual RNScalar IntensityAtPoint(const R3Point& point) const;
@@ -39,15 +39,18 @@ class R3PointLight : public R3Light {
 	virtual R3Sphere SphereOfInfluence(RNScalar intensity) const;
 
 	// Reflection evaluation functions
-	virtual RNRgb Reflection(const R3Brdf& brdf, const R3Point& eye, 
+	virtual RNRgb Reflection(const R3Brdf& brdf, const R3Point& eye,
 	    const R3Point& point, const R3Vector& normal) const;
-	virtual RNRgb DiffuseReflection(const R3Brdf& brdf, 
+	virtual RNRgb DiffuseReflection(const R3Brdf& brdf,
 	    const R3Point& point, const R3Vector& normal) const;
-	virtual RNRgb SpecularReflection(const R3Brdf& brdf, const R3Point& eye, 
+	virtual RNRgb SpecularReflection(const R3Brdf& brdf, const R3Point& eye,
 	    const R3Point& point, const R3Vector& normal) const;
 
+  // Photon mapping functions
+  virtual void EmitPhoton(R3Point *origin, R3Vector *direction) const;
+
 	// Draw functions/operations
-        virtual void Draw(int i) const;
+  virtual void Draw(int i) const;
 
 	// Class type definitions
 	RN_CLASS_TYPE_DECLARATIONS(R3PointLight);
@@ -72,7 +75,7 @@ extern R3PointLight R3null_point_light;
 inline const R3Point& R3PointLight::
 Position(void) const
 {
-    // Return position 
+    // Return position
     return position;
 }
 
@@ -102,7 +105,3 @@ QuadraticAttenuation(void) const
     // Return quadratic coefficient of attenuation
     return quadratic_attenuation;
 }
-
-
-
-
