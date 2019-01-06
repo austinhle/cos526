@@ -9,8 +9,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include "R3Graphics/R3Graphics.h"
-
-
+#include "photon.h"
 
 ////////////////////////////////////////////////////////////////////////
 // Function to render image with photon mapping
@@ -18,6 +17,8 @@
 
 R2Image *
 RenderImage(R3Scene *scene,
+  PhotonMap *global_photon_map,
+  PhotonMap *caustic_photon_map,
   int width, int height,
   int print_verbose)
 {

@@ -170,8 +170,8 @@ Reflection(const R3Brdf& brdf, const R3Point& eye,
     return rgb;
 }
 
-void R3DirectionalLight::
-EmitPhoton(R3Point *origin, R3Vector *direction) const
+R3Ray R3DirectionalLight::
+GetPhotonRay(void) const
 {
   // TODO: Need to sample from a disk at this plane
 
@@ -180,10 +180,8 @@ EmitPhoton(R3Point *origin, R3Vector *direction) const
   double radius = scene->BBox().DiagonalRadius();
   R3Point centroid = scene->BBox().Centroid();
   R3Point pos = centroid - radius * this->direction;
-  *origin = pos;
 
-  // Photon's direction is the same as the light's direction
-  *direction = this->direction;
+  return R3Ray(pos, this->direction);
 }
 
 void R3DirectionalLight::

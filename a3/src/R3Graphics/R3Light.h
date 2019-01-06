@@ -42,7 +42,7 @@ class R3Light {
 	    const R3Point& point, const R3Vector& normal) const = 0;
 
   // Photon mapping functions
-  virtual void EmitPhoton(R3Point *origin, R3Vector *direction) const = 0;
+  virtual R3Ray GetPhotonRay(void) const = 0;
 
 	// Draw functions/operations
   virtual void Draw(int i) const = 0;

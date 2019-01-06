@@ -7,11 +7,7 @@
 #include "R3Graphics/R3Graphics.h"
 #include "fglut/fglut.h"
 #include "render.h"
-
-// Forward class declarations
-struct Photon;
-class PhotonMap;
-
+#include "photon.h"
 
 // Program variables
 
@@ -42,8 +38,13 @@ static R3Viewer *viewer = NULL;
 static R3Scene *scene = NULL;
 static R3Point center(0, 0, 0);
 
+
+// Photon mapping variables
+
 static PhotonMap *global_photon_map = NULL;
 static PhotonMap *caustic_photon_map = NULL;
+static int num_global_photons = 100;
+static int num_caustic_photons = 1000;
 
 
 // Display variables
@@ -738,49 +739,28 @@ ParseArgs(int argc, char **argv)
 // Photon tracing
 ////////////////////////////////////////////////////////////////////////
 
-struct Photon {
-  R3Point position;   // position
-  R3Vector direction; // incident direction
-  RNRgb power;        // color (power)
-};
-
-static R3Point
-GetPhotonPosition(Photon *photon, void *dummy)
-{
-  R3Point pos = photon->position;
-  return R3Point(pos.X(), pos.Y(), pos.Z());
+static void InitializePhotonMaps(void) {
+  global_photon_map = new PhotonMap();
+  caustic_photon_map = new PhotonMap();
 }
 
-class PhotonMap {
-public:
-  // Constructor
-  PhotonMap(void) {}
+static int BuildPhotonMaps(void) {
+  // For each light, trace some n_e photons with 1.0/n_e power.
 
-  // Getters
-  const R3Kdtree<Photon *> *Tree(void) const { return tree; }
-  const RNArray<Photon *>& Intersections(void) const { return intersections; }
+  // Create balanced kd-trees.
+  if (!global_photon_map->BuildKdTree()) { return 0; }
+  if (!caustic_photon_map->BuildKdTree()) { return 0; }
 
-  // Photon tracing functions
-  int EmitPhotons(void);
-  void TracePhoton(Photon *photon);
-
-private:
-  R3Kdtree<Photon *> *tree;
-  RNArray<Photon *> intersections;
-};
-
-int PhotonMap::EmitPhotons(void) {
-  tree = new R3Kdtree<Photon *>(intersections, GetPhotonPosition);
-  if (!tree) {
-    fprintf(stderr, "Unable to create KD tree\n");
-    return 0;
-  }
-
+  // Return success.
   return 1;
 }
 
-void PhotonMap::TracePhoton(Photon *photon) {
-
+void TracePhoton(Photon *photon) {
+  // Trace photon to intersect with a surface.
+  // Store intersection in appropriate photon map.
+  // Decide how to scatter the photon.
+  // Select directions w/ probabilities based on Phong BRDF at each surface.
+  // Use Russian Roulette.
 }
 
 
@@ -804,15 +784,14 @@ int main(int argc, char **argv)
     scene->SetViewport(R2Viewport(0, 0, render_image_width, render_image_height));
 
     // Initialize photon maps
-    // global_photon_map = new PhotonMap();
-    // caustic_photon_map = new PhotonMap();
+    InitializePhotonMaps();
 
-    // Perform photon-tracing to fill out photon maps
-    // if (!global_photon_map->EmitPhotons()) { exit(-1); }
-    // if (!caustic_photon_map->EmitPhotons()) { exit(-1); }
+    // Perform photon-tracing to build out photon maps
+    if (!BuildPhotonMaps()) { exit(-1); }
 
     // Render image
-    R2Image *image = RenderImage(scene, render_image_width, render_image_height, print_verbose);
+    R2Image *image = RenderImage(scene, global_photon_map, caustic_photon_map,
+      render_image_width, render_image_height, print_verbose);
     if (!image) exit(-1);
 
     // Write image

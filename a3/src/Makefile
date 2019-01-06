@@ -8,7 +8,7 @@
 # List of source files
 #
 
-PHOTONMAP_SRCS=photonmap.cpp render.cpp
+PHOTONMAP_SRCS=photonmap.cpp render.cpp photon.cpp
 PHOTONMAP_OBJS=$(PHOTONMAP_SRCS:.cpp=.o)
 
 KDTVIEW_SRCS=kdtview.cpp

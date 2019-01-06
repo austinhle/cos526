@@ -34,7 +34,7 @@ class R3DirectionalLight : public R3Light {
 	    const R3Point& point, const R3Vector& normal) const;
 
   // Photon mapping functions
-  virtual void EmitPhoton(R3Point *origin, R3Vector *direction) const;
+  virtual R3Ray GetPhotonRay(void) const;
 
 	// Draw functions/operations
   virtual void Draw(int i) const;

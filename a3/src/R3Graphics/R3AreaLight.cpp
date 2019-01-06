@@ -275,8 +275,8 @@ Reflection(const R3Brdf& brdf, const R3Point& eye,
     return diffuse + specular;
 }
 
-void R3AreaLight::
-EmitPhoton(R3Point *origin, R3Vector *direction) const
+R3Ray R3AreaLight::
+GetPhotonRay(void) const
 {
   // Use rejection sampling to sample a point on the circular area light
   RNScalar r1, r2;
@@ -296,7 +296,6 @@ EmitPhoton(R3Point *origin, R3Vector *direction) const
   R3Point sample_point = Position();
   sample_point += r1 * Radius() * axis1;
   sample_point += r2 * Radius() * axis2;
-  *origin = sample_point;
 
   // Use inversion method to uniformly sample a direction on the hemisphere
   RNScalar e1 = RNRandomScalar();
@@ -304,9 +303,10 @@ EmitPhoton(R3Point *origin, R3Vector *direction) const
   double x = cos(2.0 * RN_PI * e2) * sqrt(1.0 - pow(1.0 - e1, 2));
   double y = sin(2.0 * RN_PI * e2) * sqrt(1.0 - pow(1.0 - e1, 2));
   double z = 1.0 - e1;
+  R3Vector direction(x, y, z);
 
   // TODO: Need to align this direction to the area light's existing direction
-  *direction = R3Vector(x, y, z);
+  return R3Ray(sample_point, direction);
 }
 
 void R3AreaLight::

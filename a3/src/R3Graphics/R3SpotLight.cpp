@@ -114,9 +114,10 @@ IntensityAtPoint(const R3Point& point) const
     else return (I * pow(cos_alpha, dropoffrate));
 }
 
-void R3SpotLight::
-EmitPhoton(R3Point *origin, R3Vector *direction) const
+R3Ray R3SpotLight::
+GetPhotonRay(void) const
 {
+  return R3Ray();
 }
 
 void R3SpotLight::

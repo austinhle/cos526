@@ -249,8 +249,8 @@ Reflection(const R3Brdf& brdf, const R3Point& eye,
     return rgb;
 }
 
-void R3PointLight::
-EmitPhoton(R3Point *origin, R3Vector *direction) const
+R3Ray R3PointLight::
+GetPhotonRay(void) const
 {
   // Use rejection sampling to find a diffuse photon direction
   double x, y, z;
@@ -259,10 +259,8 @@ EmitPhoton(R3Point *origin, R3Vector *direction) const
     y = 2.0 * RNRandomScalar() - 1.0;
     z = 2.0 * RNRandomScalar() - 1.0;
   } while (x * x + y * y + z * z > 1.0);
-  *direction = R3Vector(x, y, z);
 
-  // Set origin of photon to be point light's position
-  *origin = Position();
+  return R3Ray(Position(), R3Vector(x, y, z));
 }
 
 void R3PointLight::
