@@ -710,6 +710,18 @@ ParseArgs(int argc, char **argv)
         argc--; argv++; render_image_width = atoi(*argv);
         argc--; argv++; render_image_height = atoi(*argv);
       }
+      else if (!strcmp(*argv, "-gp")) {
+        argc--; argv++; num_global_photons = atoi(*argv);
+      }
+      else if (!strcmp(*argv, "cp")) {
+        argc--; argv++; num_caustic_photons = atoi(*argv);
+      }
+      else if (!strcmp(*argv, "-gmap")) {
+        show_global_photons = 1;
+      }
+      else if (!strcmp(*argv, "-cmap")) {
+        show_caustic_photons = 1;
+      }
       else {
         fprintf(stderr, "Invalid program argument: %s", *argv);
         exit(1);
