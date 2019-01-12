@@ -9,7 +9,7 @@ GetPhotonPosition(Photon *photon, void *dummy)
 }
 
 int PhotonMap::BuildKdTree(void) {
-  tree = new R3Kdtree<Photon *>(intersections, GetPhotonPosition);
+  tree = new R3Kdtree<Photon>(intersections, GetPhotonPosition);
   if (!tree) {
     fprintf(stderr, "Unable to create KD tree\n");
     return 0;
@@ -18,6 +18,6 @@ int PhotonMap::BuildKdTree(void) {
   return 1;
 }
 
-void PhotonMap::AddPhotonIntersection(Photon *photon) {
+void PhotonMap::AddPhotonIntersection(Photon photon) {
   intersections.Insert(photon);
 }

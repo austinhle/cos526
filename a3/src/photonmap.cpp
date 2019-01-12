@@ -45,7 +45,7 @@ static PhotonMap *global_photon_map = NULL;
 static PhotonMap *caustic_photon_map = NULL;
 static int num_global_photons = 100;
 static int num_caustic_photons = 1000;
-
+static int build_global_map = TRUE;
 
 // Display variables
 
@@ -756,26 +756,178 @@ static void InitializePhotonMaps(void) {
   caustic_photon_map = new PhotonMap();
 }
 
-static int BuildPhotonMaps(void) {
-  // For each light, trace some n_e photons with 1.0/n_e power.
+// Compute probabilities for diffuse reflection, specular reflection, and
+// transmission
+static RR RussianRoulette(R3Brdf *brdf, Photon &p) {
+  // Photon power properties
+  double pr = p.power.R();
+  double pg = p.power.G();
+  double pb = p.power.B();
 
-  // Create balanced kd-trees.
+  // BRDF properties
+  double dr, dg, db; // diffuse
+  double sr, sg, sb; // specular
+  double tr, tg, tb; // transmission
+
+  // Compute probabilities
+  double pd, ps, pt;
+  if (brdf->IsDiffuse()) {
+    RNRgb diffuse = brdf->Diffuse();
+    dr = diffuse.R();
+    dg = diffuse.G();
+    db = diffuse.B();
+
+    pd = std::max(dr * pr, dg * pg, db * pb) / std::max(pr, pg, pb);
+  } else {
+    pd = 0.0;
+  }
+
+  if (brdf->IsSpecular()) {
+    RNRgb specular = brdf->Specular();
+    sr = specular.R();
+    sg = specular.G();
+    sb = specular.B();
+
+    ps = std::max(sr * pr, sg * pg, sb * pb) / std::max(pr, pg, pb);
+  } else {
+    ps = 0.0;
+  }
+
+  if (brdf->IsTransparent()) {
+    RNRgb transmission = brdf->Transmission();
+    tr = transmission.R();
+    tg = transmission.G();
+    tb = transmission.B();
+
+    pt = std::max(tr * pr, tg * pg, tb * pb) / std::max(pr, pg, pb);
+  } else {
+    pt = 0.0;
+  }
+
+  // Perform Russian Roulette to determine which action to take next
+  if !((pd + ps + pt >= 0.0) && (pd + ps + pt <= 1.0)) {
+    std::cerr << "Russian Roulette probabilities do not conserve energy!"
+      << std::endl;
+    exit(-1);
+  }
+
+  double k = RNRandomScalar();
+  if (k < pd) {
+    p.power = RNRgb(pr * dr, pg * dg, pb * db) / pd;
+    return DIFFUSE_REFLECTION;
+  } else if (k < pd + ps) {
+    p.power = RNRgb(pr * sr, pg * sg, pb * sb) / ps;
+    p.s_or_t = TRUE;
+    return SPECULAR_REFLECTION;
+  } else if (k < pd + ps + pt) {
+    p.power = RNRgb(pr * tr, pg * tg, pb * tb) / pt;
+    p.s_or_t = TRUE;
+    return TRANSMISSION;
+  } else {
+    return ABSORPTION;
+  }
+}
+
+static void TracePhoton(Photon &p) {
+  // Trace photon to intersect with a surface.
+  // Store intersection in appropriate photon map, if needed.
+  // Decide how to scatter the photon.
+  // Select directions w/ probabilities based on Phong BRDF at each surface.
+  // Use Russian Roulette.
+
+  // Local variables
+  R3SceneNode *node;
+  R3SceneElement *element;
+  R3Shape *shape;
+  R3Point point;
+  R3Vector normal;
+  RNScalar t;
+
+  if (scene->Intersects(ray, &node, &element, &shape, &point, &normal, &t)) {
+    // Grab BRDF of material at intersection
+    R3Brdf *brdf = element->Material()->Brdf();
+
+    // Store intersection point in the photon
+    p.position = point;
+
+    if (build_global_map == TRUE) {
+      // Store photon-surface intersection if surface is non-specular
+      if (!brdf->IsSpecular()) {
+        global_photon_map->AddPhotonIntersection(p);
+      }
+    } else { // Building caustic photon map
+      // Store photon-surface intersection if surface is non-specular
+      // AND
+      // photon has already been through specular reflection or transmission
+      if (p.s_or_t == TRUE && !brdf->IsSpecular()) {
+        caustic_photon_map->AddPhotonIntersection(p);
+      }
+    }
+
+    // Russian Roulette to determine secondary photon behavior
+    RR rr = RussianRoulette(brdf, p);
+    switch (rr) {
+      case DIFFUSE_REFLECTION:
+        break;
+      case SPECULAR_REFLECTION:
+        break;
+      case TRANSMISSION:
+        break;
+      case ABSORPTION:
+        break;
+      default:
+        std::cerr << "Invalid Russian Roulette state" << std::endl;
+        exit(-1);
+    }
+  }
+}
+
+static int BuildPhotonMaps(void) {
+  int num_lights = scene->NLights();
+  int num_gphotons_per_light = (int)(1.0 * num_global_photons / num_lights);
+  int num_cphotons_per_light = (int)(1.0 * num_caustic_photons / nun_lights);
+
+  // -- Build the global photon map. --
+  build_global_map = TRUE;
+  for (int k = 0; k < scene->NLights(); k++) {
+    R3Light *light = scene->Light(k);
+    RNRgb gphoton_power = light->Color() / num_gphotons_per_light;
+
+    // Trace photons for this light
+    for (int i = 0; i < num_gphotons_per_light; i++) {
+      R3Ray ray = light->GetPhotonRay();
+      Photon p;
+      p.power = gphoton_power;
+      p.direction = ray.Vector();
+
+      TracePhoton(p);
+    }
+  }
+
+  // -- Build the caustic photon map. --
+  build_global_map = FALSE;
+  for (int k = 0; k < scene->NLights(); k++) {
+    R3Light *light = scene->Light(k);
+    RNRgb cphoton_power = light->Color() / num_cphotons_per_light;
+
+    // Trace photons for this light
+    for (int i = 0; i < num_gphotons_per_light; i++) {
+      R3Ray ray = light->GetPhotonRay();
+      Photon p;
+      p.power = cphoton_power;
+      p.direction = ray.Vector();
+
+      TracePhoton(p);
+    }
+  }
+
+  // Create balanced kd-trees within each photon map.
   if (!global_photon_map->BuildKdTree()) { return 0; }
   if (!caustic_photon_map->BuildKdTree()) { return 0; }
 
   // Return success.
   return 1;
 }
-
-void TracePhoton(Photon *photon) {
-  // Trace photon to intersect with a surface.
-  // Store intersection in appropriate photon map.
-  // Decide how to scatter the photon.
-  // Select directions w/ probabilities based on Phong BRDF at each surface.
-  // Use Russian Roulette.
-}
-
-
 
 ////////////////////////////////////////////////////////////////////////
 // Main program
