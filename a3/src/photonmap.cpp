@@ -9,6 +9,9 @@
 #include "render.h"
 #include "photon.h"
 
+#include <iostream>
+#include <algorithm>
+
 // Program variables
 
 static char *input_scene_name = NULL;
@@ -758,11 +761,11 @@ static void InitializePhotonMaps(void) {
 
 // Compute probabilities for diffuse reflection, specular reflection, and
 // transmission
-static RR RussianRoulette(R3Brdf *brdf, Photon &p) {
+static RR RussianRoulette(const R3Brdf *brdf, Photon *p) {
   // Photon power properties
-  double pr = p.power.R();
-  double pg = p.power.G();
-  double pb = p.power.B();
+  double pr = p->power.R();
+  double pg = p->power.G();
+  double pb = p->power.B();
 
   // BRDF properties
   double dr, dg, db; // diffuse
@@ -772,40 +775,43 @@ static RR RussianRoulette(R3Brdf *brdf, Photon &p) {
   // Compute probabilities
   double pd, ps, pt;
   if (brdf->IsDiffuse()) {
-    RNRgb diffuse = brdf->Diffuse();
+    const RNRgb diffuse = brdf->Diffuse();
     dr = diffuse.R();
     dg = diffuse.G();
     db = diffuse.B();
 
-    pd = std::max(dr * pr, dg * pg, db * pb) / std::max(pr, pg, pb);
+    pd = std::max(std::max(dr * pr, dg * pg), db * pb) /
+         std::max(std::max(pr, pg), pb);
   } else {
     pd = 0.0;
   }
 
   if (brdf->IsSpecular()) {
-    RNRgb specular = brdf->Specular();
+    const RNRgb specular = brdf->Specular();
     sr = specular.R();
     sg = specular.G();
     sb = specular.B();
 
-    ps = std::max(sr * pr, sg * pg, sb * pb) / std::max(pr, pg, pb);
+    ps = std::max(std::max(sr * pr, sg * pg), sb * pb) /
+         std::max(std::max(pr, pg), pb);
   } else {
     ps = 0.0;
   }
 
   if (brdf->IsTransparent()) {
-    RNRgb transmission = brdf->Transmission();
+    const RNRgb transmission = brdf->Transmission();
     tr = transmission.R();
     tg = transmission.G();
     tb = transmission.B();
 
-    pt = std::max(tr * pr, tg * pg, tb * pb) / std::max(pr, pg, pb);
+    pt = std::max(std::max(tr * pr, tg * pg), tb * pb) /
+         std::max(std::max(pr, pg), pb);
   } else {
     pt = 0.0;
   }
 
   // Perform Russian Roulette to determine which action to take next
-  if !((pd + ps + pt >= 0.0) && (pd + ps + pt <= 1.0)) {
+  if (!((pd + ps + pt >= 0.0) && (pd + ps + pt <= 1.0))) {
     std::cerr << "Russian Roulette probabilities do not conserve energy!"
       << std::endl;
     exit(-1);
@@ -813,28 +819,22 @@ static RR RussianRoulette(R3Brdf *brdf, Photon &p) {
 
   double k = RNRandomScalar();
   if (k < pd) {
-    p.power = RNRgb(pr * dr, pg * dg, pb * db) / pd;
+    p->power = RNRgb(pr * dr, pg * dg, pb * db) / pd;
     return DIFFUSE_REFLECTION;
   } else if (k < pd + ps) {
-    p.power = RNRgb(pr * sr, pg * sg, pb * sb) / ps;
-    p.s_or_t = TRUE;
+    p->power = RNRgb(pr * sr, pg * sg, pb * sb) / ps;
+    p->s_or_t = TRUE;
     return SPECULAR_REFLECTION;
   } else if (k < pd + ps + pt) {
-    p.power = RNRgb(pr * tr, pg * tg, pb * tb) / pt;
-    p.s_or_t = TRUE;
+    p->power = RNRgb(pr * tr, pg * tg, pb * tb) / pt;
+    p->s_or_t = TRUE;
     return TRANSMISSION;
   } else {
     return ABSORPTION;
   }
 }
 
-static void TracePhoton(Photon &p) {
-  // Trace photon to intersect with a surface.
-  // Store intersection in appropriate photon map, if needed.
-  // Decide how to scatter the photon.
-  // Select directions w/ probabilities based on Phong BRDF at each surface.
-  // Use Russian Roulette.
-
+static void TracePhoton(Photon *p) {
   // Local variables
   R3SceneNode *node;
   R3SceneElement *element;
@@ -843,12 +843,14 @@ static void TracePhoton(Photon &p) {
   R3Vector normal;
   RNScalar t;
 
+  R3Ray ray = p->Ray();
+
   if (scene->Intersects(ray, &node, &element, &shape, &point, &normal, &t)) {
     // Grab BRDF of material at intersection
-    R3Brdf *brdf = element->Material()->Brdf();
+    const R3Brdf *brdf = element->Material()->Brdf();
 
     // Store intersection point in the photon
-    p.position = point;
+    p->position = point;
 
     if (build_global_map == TRUE) {
       // Store photon-surface intersection if surface is non-specular
@@ -857,9 +859,9 @@ static void TracePhoton(Photon &p) {
       }
     } else { // Building caustic photon map
       // Store photon-surface intersection if surface is non-specular
-      // AND
+      // -- AND --
       // photon has already been through specular reflection or transmission
-      if (p.s_or_t == TRUE && !brdf->IsSpecular()) {
+      if (p->s_or_t == TRUE && !brdf->IsSpecular()) {
         caustic_photon_map->AddPhotonIntersection(p);
       }
     }
@@ -885,7 +887,7 @@ static void TracePhoton(Photon &p) {
 static int BuildPhotonMaps(void) {
   int num_lights = scene->NLights();
   int num_gphotons_per_light = (int)(1.0 * num_global_photons / num_lights);
-  int num_cphotons_per_light = (int)(1.0 * num_caustic_photons / nun_lights);
+  int num_cphotons_per_light = (int)(1.0 * num_caustic_photons / num_lights);
 
   // -- Build the global photon map. --
   build_global_map = TRUE;
@@ -896,9 +898,7 @@ static int BuildPhotonMaps(void) {
     // Trace photons for this light
     for (int i = 0; i < num_gphotons_per_light; i++) {
       R3Ray ray = light->GetPhotonRay();
-      Photon p;
-      p.power = gphoton_power;
-      p.direction = ray.Vector();
+      Photon *p = new Photon(ray.Vector(), gphoton_power);
 
       TracePhoton(p);
     }
@@ -913,10 +913,7 @@ static int BuildPhotonMaps(void) {
     // Trace photons for this light
     for (int i = 0; i < num_gphotons_per_light; i++) {
       R3Ray ray = light->GetPhotonRay();
-      Photon p;
-      p.power = cphoton_power;
-      p.direction = ray.Vector();
-
+      Photon *p = new Photon(ray.Vector(), cphoton_power);
       TracePhoton(p);
     }
   }

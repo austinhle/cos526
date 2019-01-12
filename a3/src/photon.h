@@ -10,7 +10,15 @@ enum RR {
   ABSORPTION
 };
 
-struct Photon {
+class Photon {
+public:
+  Photon(void) {}
+  Photon(R3Vector direction_, RNRgb power_) :
+    direction(direction_), power(power_) {}
+
+  // Property functions
+  R3Ray Ray(void) const;
+
   R3Point position;   // incident position
   R3Vector direction; // incident direction
   RNRgb power;        // color (power)
@@ -23,16 +31,16 @@ public:
   PhotonMap(void) {}
 
   // Property functions
-  const R3Kdtree<Photon> *Tree(void) const { return tree; }
-  const RNArray<Photon>& Intersections(void) const { return intersections; }
+  const R3Kdtree<Photon *> *Tree(void) const { return tree; }
+  const RNArray<Photon *>& Intersections(void) const { return intersections; }
 
   // Manipulation functions/operations
   int BuildKdTree(void);
   void AddPhotonIntersection(Photon *photon);
 
 private:
-  R3Kdtree<Photon> *tree;
-  RNArray<Photon> intersections;
+  R3Kdtree<Photon *> *tree;
+  RNArray<Photon *> intersections;
 };
 
 #endif
