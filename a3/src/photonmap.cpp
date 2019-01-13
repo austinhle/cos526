@@ -279,7 +279,14 @@ DrawRays(R3Scene *scene)
 static void
 DrawPhotons(PhotonMap *map)
 {
-  // TODO: Implement!
+  static GLfloat material[4] = { 0, 0, 1, 1 };
+  glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, material);
+
+  const RNArray<Photon *>& photons = map->Intersections();
+  for (int i = 0; i < photons.NEntries(); i++) {
+    Photon *p = photons.Kth(i);
+    R3Sphere(p->position, 0.01).Draw();
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -716,7 +723,7 @@ ParseArgs(int argc, char **argv)
       else if (!strcmp(*argv, "-gp")) {
         argc--; argv++; num_global_photons = atoi(*argv);
       }
-      else if (!strcmp(*argv, "cp")) {
+      else if (!strcmp(*argv, "-cp")) {
         argc--; argv++; num_caustic_photons = atoi(*argv);
       }
       else if (!strcmp(*argv, "-gmap")) {
@@ -754,14 +761,16 @@ ParseArgs(int argc, char **argv)
 // Photon tracing
 ////////////////////////////////////////////////////////////////////////
 
-static void InitializePhotonMaps(void) {
+static void InitializePhotonMaps(void)
+{
   global_photon_map = new PhotonMap();
   caustic_photon_map = new PhotonMap();
 }
 
 // Compute probabilities for diffuse reflection, specular reflection, and
 // transmission
-static RR RussianRoulette(const R3Brdf *brdf, Photon *p) {
+static RR RussianRoulette(const R3Brdf *brdf, Photon *p)
+{
   // Photon power properties
   double pr = p->power.R();
   double pg = p->power.G();
@@ -810,13 +819,15 @@ static RR RussianRoulette(const R3Brdf *brdf, Photon *p) {
     pt = 0.0;
   }
 
-  // Perform Russian Roulette to determine which action to take next
-  if (!((pd + ps + pt >= 0.0) && (pd + ps + pt <= 1.0))) {
-    std::cerr << "Russian Roulette probabilities do not conserve energy!"
-      << std::endl;
-    exit(-1);
+  // Normalize the probabilities if they exceed 1.0
+  double total = pd + ps + pt;
+  if (total > 1.0) {
+    pd /= total;
+    ps /= total;
+    pt /= total;
   }
 
+  // Perform Russian Roulette to determine which action to take next
   double k = RNRandomScalar();
   if (k < pd) {
     p->power = RNRgb(pr * dr, pg * dg, pb * db) / pd;
@@ -834,7 +845,8 @@ static RR RussianRoulette(const R3Brdf *brdf, Photon *p) {
   }
 }
 
-static void TracePhoton(Photon *p) {
+static void TracePhoton(Photon *p)
+{
   // Local variables
   R3SceneNode *node;
   R3SceneElement *element;
@@ -853,15 +865,17 @@ static void TracePhoton(Photon *p) {
     p->position = point;
 
     if (build_global_map == TRUE) {
-      // Store photon-surface intersection if surface is non-specular
-      if (!brdf->IsSpecular()) {
+      // Store photon-surface intersection if surface is diffuse
+      if (brdf->IsDiffuse()) {
+        // std::cerr << "Storing photon in global map..." << std::endl;
         global_photon_map->AddPhotonIntersection(p);
       }
     } else { // Building caustic photon map
-      // Store photon-surface intersection if surface is non-specular
+      // Store photon-surface intersection if surface is diffuse
       // -- AND --
       // photon has already been through specular reflection or transmission
-      if (p->s_or_t == TRUE && !brdf->IsSpecular()) {
+      if (p->s_or_t == TRUE && brdf->IsDiffuse()) {
+        // std::cerr << "Storing photon in caustic map..." << std::endl;
         caustic_photon_map->AddPhotonIntersection(p);
       }
     }
@@ -884,44 +898,54 @@ static void TracePhoton(Photon *p) {
   }
 }
 
-static int BuildPhotonMaps(void) {
+static int BuildPhotonMaps(void)
+{
   int num_lights = scene->NLights();
   int num_gphotons_per_light = (int)(1.0 * num_global_photons / num_lights);
   int num_cphotons_per_light = (int)(1.0 * num_caustic_photons / num_lights);
 
+  std::cerr << "Emitting " << num_gphotons_per_light << " global photons per light"
+            << std::endl;
+  std::cerr << "Emitting " << num_cphotons_per_light << " caustic photons per light"
+            << std::endl;
+
   // -- Build the global photon map. --
+  std::cerr << "Building global photon map..." << std::endl;
   build_global_map = TRUE;
   for (int k = 0; k < scene->NLights(); k++) {
     R3Light *light = scene->Light(k);
-    RNRgb gphoton_power = light->Color() / num_gphotons_per_light;
+    RNRgb gphoton_power = light->Color() / (1.0 * num_gphotons_per_light);
 
     // Trace photons for this light
     for (int i = 0; i < num_gphotons_per_light; i++) {
       R3Ray ray = light->GetPhotonRay();
-      Photon *p = new Photon(ray.Vector(), gphoton_power);
-
+      Photon *p = new Photon(ray.Start(), ray.Vector(), gphoton_power);
       TracePhoton(p);
     }
   }
 
   // -- Build the caustic photon map. --
+  std::cerr << "Building caustic photon map..." << std::endl;
   build_global_map = FALSE;
   for (int k = 0; k < scene->NLights(); k++) {
     R3Light *light = scene->Light(k);
-    RNRgb cphoton_power = light->Color() / num_cphotons_per_light;
+    RNRgb cphoton_power = light->Color() / (1.0 * num_cphotons_per_light);
 
     // Trace photons for this light
-    for (int i = 0; i < num_gphotons_per_light; i++) {
+    for (int i = 0; i < num_cphotons_per_light; i++) {
       R3Ray ray = light->GetPhotonRay();
-      Photon *p = new Photon(ray.Vector(), cphoton_power);
+      Photon *p = new Photon(ray.Start(), ray.Vector(), cphoton_power);
       TracePhoton(p);
     }
   }
 
   // Create balanced kd-trees within each photon map.
+  std::cerr << "Building kd-tree for global photon map..." << std::endl;
   if (!global_photon_map->BuildKdTree()) { return 0; }
+  std::cerr << "Building kd-tree for caustic photon map..." << std::endl;
   if (!caustic_photon_map->BuildKdTree()) { return 0; }
 
+  std::cerr << "Done building photon maps!" << std::endl;
   // Return success.
   return 1;
 }
@@ -950,6 +974,7 @@ int main(int argc, char **argv)
     // Perform photon-tracing to build out photon maps
     if (!BuildPhotonMaps()) { exit(-1); }
 
+    std::cerr << "Using photon maps to render image..." << std::endl;
     // Render image
     R2Image *image = RenderImage(scene, global_photon_map, caustic_photon_map,
       render_image_width, render_image_height, print_verbose);
@@ -957,6 +982,7 @@ int main(int argc, char **argv)
 
     // Write image
     if (!WriteImage(image, output_image_name)) exit(-1);
+    std::cerr << "Wrote image out to " << output_image_name << std::endl;
 
     // Delete image
     delete image;
@@ -968,6 +994,12 @@ int main(int argc, char **argv)
     // Create viewer
     viewer = new R3Viewer(scene->Viewer());
     if (!viewer) exit(-1);
+
+    // Initialize photon maps
+    InitializePhotonMaps();
+
+    // Build photon maps for viewing
+    if (!BuildPhotonMaps()) { exit(-1); }
 
     // Run GLUT interface
     GLUTMainLoop();

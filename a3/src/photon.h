@@ -14,7 +14,9 @@ class Photon {
 public:
   Photon(void) {}
   Photon(R3Vector direction_, RNRgb power_) :
-    direction(direction_), power(power_) {}
+    direction(direction_), power(power_), s_or_t(FALSE) {}
+  Photon(R3Point start_, R3Vector direction_, RNRgb power_) :
+    position(start_), direction(direction_), power(power_), s_or_t(FALSE) {}
 
   // Property functions
   R3Ray Ray(void) const;
