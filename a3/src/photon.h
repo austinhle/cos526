@@ -13,10 +13,12 @@ enum RR {
 class Photon {
 public:
   Photon(void) {}
-  Photon(R3Vector direction_, RNRgb power_) :
-    direction(direction_), power(power_), s_or_t(FALSE) {}
   Photon(R3Point start_, R3Vector direction_, RNRgb power_) :
-    position(start_), direction(direction_), power(power_), s_or_t(FALSE) {}
+    position(start_), direction(direction_), power(power_), s_or_t(FALSE),
+    bounces(0), start_pos(start_) {}
+  Photon(R3Point start_, R3Vector direction_, RNRgb power_, int bounces_) :
+    position(start_), direction(direction_), power(power_), s_or_t(FALSE),
+    bounces(bounces_), start_pos(start_) {}
 
   // Property functions
   R3Ray Ray(void) const;
@@ -25,6 +27,10 @@ public:
   R3Vector direction; // incident direction
   RNRgb power;        // color (power)
   RNBoolean s_or_t;   // been through specular reflection or tramission?
+
+  // Debugging properties
+  int bounces;
+  R3Point start_pos;
 };
 
 class PhotonMap {

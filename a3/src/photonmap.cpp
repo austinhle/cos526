@@ -279,13 +279,25 @@ DrawRays(R3Scene *scene)
 static void
 DrawPhotons(PhotonMap *map)
 {
-  static GLfloat material[4] = { 0, 0, 1, 1 };
-  glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, material);
-
   const RNArray<Photon *>& photons = map->Intersections();
   for (int i = 0; i < photons.NEntries(); i++) {
     Photon *p = photons.Kth(i);
-    R3Sphere(p->position, 0.01).Draw();
+    R3Point position = p->position;
+    R3Vector direction = p->direction;
+
+    if (p->bounces > 0) {
+      glColor3d(1.0, 1.0, 1.0);
+    } else {
+      glColor3d(0.0, 1.0, 0.0);
+    }
+
+    R3Sphere(position, 0.01).Draw();
+
+    glBegin(GL_LINES);
+    R3LoadPoint(position);
+    // R3LoadPoint(position - 0.2 * direction);
+    R3LoadPoint(p->start_pos);
+    glEnd();
   }
 }
 
@@ -349,8 +361,7 @@ void GLUTRedraw(void)
 
   // Draw global photons
   if (show_global_photons) {
-    glEnable(GL_LIGHTING);
-    glColor3d(1.0, 0.0, 0.0);
+    glDisable(GL_LIGHTING);
     glLineWidth(3);
     DrawPhotons(global_photon_map);
     glLineWidth(1);
@@ -358,8 +369,7 @@ void GLUTRedraw(void)
 
   // Draw caustic photons
   if (show_caustic_photons) {
-    glEnable(GL_LIGHTING);
-    glColor3d(0.0, 0.0, 1.0);
+    glDisable(GL_LIGHTING);
     glLineWidth(3);
     DrawPhotons(caustic_photon_map);
     glLineWidth(1);
@@ -565,6 +575,16 @@ void GLUTKeyboard(unsigned char key, int x, int y)
     show_frame_rate = !show_frame_rate;
     break;
 
+  case 'G':
+  case 'g':
+    show_global_photons = !show_global_photons;
+    break;
+
+  case 'H':
+  case 'h':
+    show_caustic_photons = !show_caustic_photons;
+    break;
+
   case ' ':
     viewer->SetCamera(scene->Camera());
     break;
@@ -726,12 +746,6 @@ ParseArgs(int argc, char **argv)
       else if (!strcmp(*argv, "-cp")) {
         argc--; argv++; num_caustic_photons = atoi(*argv);
       }
-      else if (!strcmp(*argv, "-gmap")) {
-        show_global_photons = 1;
-      }
-      else if (!strcmp(*argv, "-cmap")) {
-        show_caustic_photons = 1;
-      }
       else {
         fprintf(stderr, "Invalid program argument: %s", *argv);
         exit(1);
@@ -748,7 +762,8 @@ ParseArgs(int argc, char **argv)
 
   // Check scene filename
   if (!input_scene_name) {
-    fprintf(stderr, "Usage: photonmap inputscenefile [outputimagefile] [-resolution <int> <int>] [-v]\n");
+    fprintf(stderr, "Usage: photonmap inputscenefile [outputimagefile]");
+    fprintf(stderr, "[-resolution <int> <int>] [-gp <int>] [-cp <int>] [-v]\n");
     return 0;
   }
 
@@ -765,6 +780,26 @@ static void InitializePhotonMaps(void)
 {
   global_photon_map = new PhotonMap();
   caustic_photon_map = new PhotonMap();
+}
+
+// Rotate sample to the coordinate system defined by normal.
+static void rotateTo(R3Vector& sample, R3Vector &normal)
+{
+  // Coordinate system that was used to sample the vector
+  R3Vector base = R3Vector(0.0, 1.0, 0.0);
+
+  // Normalize the normal vector defining the new coordinate system
+  normal.Normalize();
+
+  // Compute the axis of rotation
+  R3Vector rotation_axis = base;
+  rotation_axis.Cross(normal);
+
+  // Compute number of radians to rotate by
+  RNAngle angle = acos(base.Dot(normal));
+
+  // Rotate the sample (by mutation)
+  sample.Rotate(rotation_axis, angle);
 }
 
 // Compute probabilities for diffuse reflection, specular reflection, and
@@ -875,7 +910,7 @@ static void TracePhoton(Photon *p)
       // -- AND --
       // photon has already been through specular reflection or transmission
       if (p->s_or_t == TRUE && brdf->IsDiffuse()) {
-        // std::cerr << "Storing photon in caustic map..." << std::endl;
+        std::cerr << "Storing photon in caustic map..." << std::endl;
         caustic_photon_map->AddPhotonIntersection(p);
       }
     }
@@ -883,17 +918,38 @@ static void TracePhoton(Photon *p)
     // Russian Roulette to determine secondary photon behavior
     RR rr = RussianRoulette(brdf, p);
     switch (rr) {
-      case DIFFUSE_REFLECTION:
+      case DIFFUSE_REFLECTION: {
+        // std::cerr << "Doing a diffuse reflection!" << std::endl;
+
+        // Sample a diffuse reflection direction
+        RNScalar u1 = RNRandomScalar();
+        RNScalar u2 = RNRandomScalar();
+        RNAngle pitch = 2.0 * RN_PI * u2;
+        RNAngle yaw = acos(sqrt(u1));
+        R3Vector dir = R3Vector(pitch, yaw);
+        rotateTo(dir, normal);
+
+        // Create new secondary photon to trace
+        Photon *next_photon = new Photon(point + 0.05 * dir, dir, p->power);
+        next_photon->bounces = p->bounces + 1;
+        next_photon->start_pos = point;
+        TracePhoton(next_photon);
+
         break;
-      case SPECULAR_REFLECTION:
+      }
+      case SPECULAR_REFLECTION: {
         break;
-      case TRANSMISSION:
+      }
+      case TRANSMISSION: {
         break;
-      case ABSORPTION:
+      }
+      case ABSORPTION: {
         break;
-      default:
+      }
+      default: {
         std::cerr << "Invalid Russian Roulette state" << std::endl;
         exit(-1);
+      }
     }
   }
 }
@@ -904,9 +960,11 @@ static int BuildPhotonMaps(void)
   int num_gphotons_per_light = (int)(1.0 * num_global_photons / num_lights);
   int num_cphotons_per_light = (int)(1.0 * num_caustic_photons / num_lights);
 
-  std::cerr << "Emitting " << num_gphotons_per_light << " global photons per light"
+  std::cerr << "Emitting " << num_gphotons_per_light
+            << " global photons per light"
             << std::endl;
-  std::cerr << "Emitting " << num_cphotons_per_light << " caustic photons per light"
+  std::cerr << "Emitting " << num_cphotons_per_light
+            << " caustic photons per light"
             << std::endl;
 
   // -- Build the global photon map. --
@@ -945,8 +1003,8 @@ static int BuildPhotonMaps(void)
   std::cerr << "Building kd-tree for caustic photon map..." << std::endl;
   if (!caustic_photon_map->BuildKdTree()) { return 0; }
 
-  std::cerr << "Done building photon maps!" << std::endl;
   // Return success.
+  std::cerr << "Done building photon maps!" << std::endl;
   return 1;
 }
 
