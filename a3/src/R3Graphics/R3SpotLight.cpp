@@ -121,6 +121,7 @@ GetPhotonRay(void) const
   R3Point position = Position();
   R3Vector sample_dir;
   RNScalar cos_alpha;
+  RNAngle sample_angle;
 
   // Use rejection sampling to get a sampled direction within the cutoff angle
   do {
@@ -150,7 +151,9 @@ GetPhotonRay(void) const
 
     // Determine angle between sampled direction and this direction
     cos_alpha = sample_dir.Dot(Direction());
-  } while (cos(cutoffangle) > cos_alpha);
+
+    sample_angle = acos(sample_dir.Dot(Direction()));
+  } while (std::fabs(cutoffangle) > std::fabs(sample_angle));
 
   return R3Ray(position, sample_dir);
 }
