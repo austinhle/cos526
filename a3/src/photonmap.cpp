@@ -17,6 +17,7 @@
 static char *input_scene_name = NULL;
 static char *output_image_name = NULL;
 static char *screenshot_image_name = NULL;
+static int num_samples = 1;
 static int render_image_width = 64;
 static int render_image_height = 64;
 static int print_verbose = 0;
@@ -788,6 +789,9 @@ ParseArgs(int argc, char **argv)
       else if (!strcmp(*argv, "-E")) {
         argc--; argv++; E = atoi(*argv);
       }
+      else if (!strcmp(*argv, "-ns")) {
+        argc--; argv++; num_samples = atoi(*argv);
+      }
       else {
         fprintf(stderr, "Invalid program argument: %s", *argv);
         exit(1);
@@ -825,7 +829,7 @@ static void InitializePhotonMaps(void)
 }
 
 // Rotate sample to the coordinate system defined by normal.
-static void rotateTo(R3Vector& sample, R3Vector &normal)
+static void RotateTo(R3Vector& sample, R3Vector &normal)
 {
   // Normalize the normal vector defining the new coordinate system
   normal.Normalize();
@@ -944,7 +948,7 @@ static void TracePhoton(Photon *p)
 
     if (build_global_map == TRUE) {
       // Store photon-surface intersection if surface is diffuse
-      if (brdf->IsDiffuse()) {
+      if (p->bounces > 0 && brdf->IsDiffuse()) {
         global_photon_map->AddPhotonIntersection(p);
       }
     } else { // Building caustic photon map
@@ -967,7 +971,7 @@ static void TracePhoton(Photon *p)
         RNAngle pitch = 2.0 * RN_PI * u2;
         RNAngle yaw = acos(sqrt(u1));
         R3Vector dir = R3Vector(pitch, yaw);
-        rotateTo(dir, normal);
+        RotateTo(dir, normal);
 
         // Create new secondary photon to trace
         Photon *next_photon = new Photon(point + 0.05 * dir, dir, p->power, p->s_or_t);
@@ -982,9 +986,9 @@ static void TracePhoton(Photon *p)
         RNScalar u1 = RNRandomScalar();
         RNScalar u2 = RNRandomScalar();
         RNAngle pitch = 2.0 * RN_PI * u2;
-        RNAngle yaw = acos(pow(u1, 1.0 / E + 1));
+        RNAngle yaw = acos(pow(u1, 1.0 / (E + 1.0)));
         R3Vector dir = R3Vector(pitch, yaw);
-        rotateTo(dir, normal);
+        RotateTo(dir, normal);
 
         // Create new secondary photon to trace
         Photon *next_photon = new Photon(point + 0.05 * dir, dir, p->power, p->s_or_t);
@@ -1040,7 +1044,7 @@ static void TracePhoton(Photon *p)
         break;
       }
       default: {
-        std::cerr << "Invalid Russian Roulette state" << std::endl;
+        std::cerr << "Invalid Russian Roulette state while photon-tracing" << std::endl;
         exit(-1);
       }
     }
@@ -1063,7 +1067,7 @@ static int BuildPhotonMaps(void)
   // -- Build the global photon map. --
   std::cerr << "Building global photon map..." << std::endl;
   build_global_map = TRUE;
-  for (int k = 0; k < scene->NLights(); k++) {
+  for (int k = 0; k < num_lights; k++) {
     R3Light *light = scene->Light(k);
     RNRgb gphoton_power = light->Color() / (1.0 * num_gphotons_per_light);
 
@@ -1078,7 +1082,7 @@ static int BuildPhotonMaps(void)
   // -- Build the caustic photon map. --
   std::cerr << "Building caustic photon map..." << std::endl;
   build_global_map = FALSE;
-  for (int k = 0; k < scene->NLights(); k++) {
+  for (int k = 0; k < num_lights; k++) {
     R3Light *light = scene->Light(k);
     RNRgb cphoton_power = light->Color() / (1.0 * num_cphotons_per_light);
 
@@ -1128,7 +1132,7 @@ int main(int argc, char **argv)
     std::cerr << "Using photon maps to render image..." << std::endl;
     // Render image
     R2Image *image = RenderImage(scene, global_photon_map, caustic_photon_map,
-      N, render_image_width, render_image_height, print_verbose);
+      N, E, num_samples, render_image_width, render_image_height, print_verbose);
     if (!image) exit(-1);
 
     // Write image

@@ -11,7 +11,7 @@
 #include <algorithm>
 
 #include "R3Graphics/R3Graphics.h"
-#include "photon.h"
+#include "render.h"
 
 ////////////////////////////////////////////////////////////////////////
 // Function to render image with photon mapping
@@ -19,6 +19,9 @@
 
 static const RNScalar LOW = 0.0;
 static const RNScalar HIGH = 1.0;
+
+// Normal vector of coordinate system used to sample vectors
+static const R3Vector BASE = R3Vector(0.0, 0.0, 1.0);
 
 static RNScalar clamp(RNScalar value, RNScalar low, RNScalar high)
 {
@@ -32,6 +35,70 @@ static void clampColor(RNRgb *color)
   RNScalar b = color->B();
 
   color->Reset(clamp(r, LOW, HIGH), clamp(g, LOW, HIGH), clamp(b, LOW, HIGH));
+}
+
+// Rotate sample to the coordinate system defined by normal.
+static void RotateTo(R3Vector& sample, R3Vector &normal)
+{
+  // Normalize the normal vector defining the new coordinate system
+  normal.Normalize();
+
+  // Compute the axis of rotation
+  R3Vector rotation_axis = BASE;
+  rotation_axis.Cross(normal);
+
+  // Compute number of radians to rotate by
+  RNAngle angle = acos(BASE.Dot(normal));
+
+  // Rotate the sample (by mutation)
+  sample.Rotate(rotation_axis, angle);
+}
+
+static RR RussianRoulette(const R3Brdf *brdf, RNScalar *pdf)
+{
+  // Compute probabilities
+  double pd, ps, pt;
+  if (brdf->IsDiffuse()) {
+    const RNRgb diffuse = brdf->Diffuse();
+    pd = std::max(std::max(diffuse.R(), diffuse.G()), diffuse.B());
+  } else {
+    pd = 0.0;
+  }
+
+  if (brdf->IsSpecular()) {
+    const RNRgb specular = brdf->Specular();
+    ps = std::max(std::max(specular.R(), specular.G()), specular.B());
+  } else {
+    ps = 0.0;
+  }
+
+  if (brdf->IsTransparent()) {
+    const RNRgb transmission = brdf->Transmission();
+    pt = std::max(std::max(transmission.R(), transmission.G()), transmission.B());
+  } else {
+    pt = 0.0;
+  }
+
+  // Normalize the probabilities if they exceed 1.0
+  double total = pd + ps + pt;
+  if (total > 1.0) {
+    pd /= total; ps /= total; pt /= total;
+  }
+
+  // Perform Russian Roulette to determine which action to take next
+  double k = RNRandomScalar();
+  if (k < pd) {
+    *pdf = pd;
+    return DIFFUSE_REFLECTION;
+  } else if (k < pd + ps) {
+    *pdf = ps;
+    return SPECULAR_REFLECTION;
+  } else if (k < pd + ps + pt) {
+    *pdf = pt;
+    return TRANSMISSION;
+  } else {
+    return ABSORPTION;
+  }
 }
 
 static int ShadowRay(R3Scene *scene, R3SceneElement *hit_elem,
@@ -90,11 +157,229 @@ static int ShadowRay(R3Scene *scene, R3SceneElement *hit_elem,
   }
 }
 
+static RNRgb
+EstimateDirect(R3Scene *scene, R3SceneElement *element,
+  R3Point point, const R3Brdf *brdf, R3Point eye, R3Vector normal)
+{
+  RNRgb direct = RNblack_rgb;
+  for (int k = 0; k < scene->NLights(); k++) {
+    R3Light *light = scene->Light(k);
+
+    if (!ShadowRay(scene, element, point, light)) {
+      direct += light->Reflection(*brdf, eye, point, normal);
+    }
+  }
+
+  return direct;
+}
+
+static RNRgb
+EstimateIndirect(PhotonMap *global_photon_map, R3Point point,
+  int num_nearest_photons)
+{
+  RNRgb indirect_global = RNblack_rgb;
+  if (num_nearest_photons > 0) {
+    // Find the nearest k photons to intersection point
+    RNArray<Photon *> nearest_photons;
+    RNLength distances[num_nearest_photons];
+    global_photon_map->Tree()->FindClosest(point, 0, FLT_MAX,
+        num_nearest_photons, nearest_photons, distances);
+
+    for (int i = 0; i < nearest_photons.NEntries(); i++) {
+      Photon *p = nearest_photons.Kth(i);
+      indirect_global += p->power;
+    }
+
+    // Sum up photon power and divide by approximated sphere radius
+    RNLength radius = distances[nearest_photons.NEntries() - 1];
+    indirect_global /= (RN_PI * radius * radius);
+  }
+
+  return indirect_global;
+}
+
+static RNRgb
+EstimateCaustic(PhotonMap *caustic_photon_map, R3Point point,
+  int num_nearest_photons)
+{
+  RNRgb caustic = RNblack_rgb;
+  if (num_nearest_photons > 0) {
+    // Find the nearest k photons to intersection point
+    RNArray<Photon *> nearest_photons;
+    RNLength distances[num_nearest_photons];
+    caustic_photon_map->Tree()->FindClosest(point, 0, FLT_MAX,
+        num_nearest_photons, nearest_photons, distances);
+
+    for (int i = 0; i < nearest_photons.NEntries(); i++) {
+      Photon *p = nearest_photons.Kth(i);
+      caustic += p->power;
+    }
+
+    // Sum up photon power and divide by approximated sphere radius
+    RNLength radius = distances[nearest_photons.NEntries() - 1];
+    caustic /= (RN_PI * radius * radius);
+  }
+
+  return caustic;
+}
+
+static RNRgb
+TraceRay(R3Scene *scene, PhotonMap *global_photon_map,
+  PhotonMap *caustic_photon_map,
+  int num_nearest_photons, int specular_exponent, R3Ray ray, int *ray_count)
+{
+  // Local variables
+  const R3Point& eye = scene->Camera().Origin();
+  R3SceneNode *node;
+  R3SceneElement *element;
+  R3Shape *shape;
+  R3Point point;
+  R3Vector normal;
+  RNScalar t;
+
+  // Increment ray count
+  (*ray_count)++;
+
+  // Initial color
+  RNRgb color = RNblack_rgb;
+
+  if (scene->Intersects(ray, &node, &element, &shape, &point, &normal, &t)) {
+    // Get intersection information
+    const R3Material *material = (element) ? element->Material() : &R3default_material;
+    const R3Brdf *brdf = (material) ? material->Brdf() : &R3default_brdf;
+
+    // Add ambient lighting
+    color += scene->Ambient();
+
+    // Add emission from intersecting material
+    if (brdf) {
+      color += brdf->Emission();
+    }
+
+    // Add direct lighting
+    color += EstimateDirect(scene, element, point, brdf, eye, normal);
+
+    // Add indirect lighting
+    color += EstimateIndirect(global_photon_map, point, num_nearest_photons);
+
+    // Add caustics
+    color += EstimateCaustic(caustic_photon_map, point, num_nearest_photons);
+
+    // Russian Roulette
+    if (brdf) {
+      RNScalar pdf;
+      RR rr = RussianRoulette(brdf, &pdf);
+
+      switch (rr) {
+        case DIFFUSE_REFLECTION: {
+          // Sample a diffuse reflection direction
+          RNScalar u1 = RNRandomScalar();
+          RNScalar u2 = RNRandomScalar();
+          RNAngle pitch = 2.0 * RN_PI * u2;
+          RNAngle yaw = acos(sqrt(u1));
+          R3Vector dir = R3Vector(pitch, yaw);
+          RotateTo(dir, normal);
+
+          // Create new secondary ray to trace
+          R3Ray next_ray = R3Ray(point + 0.05 * dir, dir);
+
+          // Get recursive ray-traced color
+          RNRgb mc_color = TraceRay(scene, global_photon_map, caustic_photon_map,
+            num_nearest_photons, specular_exponent, next_ray, ray_count);
+          mc_color /= pdf;
+
+          // Add recursive ray-traced color
+          color += mc_color;
+
+          break;
+        }
+        case SPECULAR_REFLECTION: {
+          // Sample a specular reflection direction
+          RNScalar u1 = RNRandomScalar();
+          RNScalar u2 = RNRandomScalar();
+          RNAngle pitch = 2.0 * RN_PI * u2;
+          RNAngle yaw = acos(pow(u1, 1.0 / (specular_exponent + 1.0)));
+          R3Vector dir = R3Vector(pitch, yaw);
+          RotateTo(dir, normal);
+
+          // Create new secondary ray to trace
+          R3Ray next_ray = R3Ray(point + 0.05 * dir, dir);
+
+          // Add recursive ray-traced color
+          RNRgb mc_color = TraceRay(scene, global_photon_map, caustic_photon_map,
+            num_nearest_photons, specular_exponent, next_ray, ray_count);
+          mc_color /= pdf;
+          color += mc_color;
+
+          break;
+        }
+        case TRANSMISSION: {
+          // Normal vector of surface intersection
+          R3Vector n = normal;
+          n.Normalize();
+
+          // Incoming light vector
+          R3Vector l = ray.Vector();
+          l.Normalize();
+
+          RNScalar ior1 = 1.0; // incoming index of refraction
+          RNScalar ior2 = 1.0; // outgoing index of refraction
+
+          RNScalar c = -n.Dot(l);
+          RNBoolean inside = (c < 0) ? TRUE : FALSE;
+
+          if (inside == TRUE) { // Light is coming from inside the object
+            n = -n;
+            c = -n.Dot(l);
+            ior1 = brdf->IndexOfRefraction();
+          }
+          else {
+            ior2 = brdf->IndexOfRefraction();
+          }
+
+          RNScalar r = ior1 / ior2;
+          RNScalar s2 = r * sqrt(1.0 - pow(c, 2));
+          if (s2 > 1.0) { // Total internal reflection
+            break; // Terminate the ray; treat as ABSORPTION case
+          }
+          else {
+            // Compute refracted direction
+            R3Vector dir = r * l + (r * c - sqrt(1 - pow(r, 2) * (1 - pow(c, 2)))) * n;
+
+            // Create new secondary ray to trace
+            R3Ray next_ray = R3Ray(point + 0.05 * dir, dir);
+
+            // Add recursive ray-traced color
+            RNRgb mc_color = TraceRay(scene, global_photon_map, caustic_photon_map,
+              num_nearest_photons, specular_exponent, next_ray, ray_count);
+            mc_color /= pdf;
+            color += mc_color;
+          }
+
+          break;
+        }
+        case ABSORPTION: {
+          break;
+        }
+        default: {
+          std::cerr << "Invalid Russian Roulette state while ray-tracing" << std::endl;
+          exit(-1);
+        }
+      }
+    }
+  }
+
+  clampColor(&color);
+  return color;
+}
+
 R2Image *
 RenderImage(R3Scene *scene,
   PhotonMap *global_photon_map,
   PhotonMap *caustic_photon_map,
   int num_nearest_photons,
+  int specular_exponent,
+  int num_samples,
   int width, int height,
   int print_verbose)
 {
@@ -110,94 +395,23 @@ RenderImage(R3Scene *scene,
     return NULL;
   }
 
-  // Convenient variables
-  const R3Point& eye = scene->Camera().Origin();
-  R3SceneNode *node;
-  R3SceneElement *element;
-  R3Shape *shape;
-  R3Point point;
-  R3Vector normal;
-  RNScalar t;
-
   // Draw intersection point and normal for some rays
   for (int i = 0; i < width; i++) {
     for (int j = 0; j < height; j++) {
-      R3Ray ray = scene->Viewer().WorldRay(i, j);
-      if (scene->Intersects(ray, &node, &element, &shape, &point, &normal, &t)) {
-        // Get intersection information
-        const R3Material *material = (element) ? element->Material() : &R3default_material;
-        const R3Brdf *brdf = (material) ? material->Brdf() : &R3default_brdf;
-
-        // Compute color
-        RNRgb color = scene->Ambient();
-        if (brdf) {
-          color += brdf->Emission();
-
-          // Compute direct lighting from each light
-          RNRgb direct = RNblack_rgb;
-          for (int k = 0; k < scene->NLights(); k++) {
-            R3Light *light = scene->Light(k);
-
-            if (!ShadowRay(scene, element, point, light)) {
-              direct += light->Reflection(*brdf, eye, point, normal);
-            }
-          }
-          color += direct;
-
-          // Compute indirect lighting using global_photon_map
-          RNRgb indirect_global = RNblack_rgb;
-          if (num_nearest_photons > 0) {
-            // Find the nearest k photons to intersection point
-            RNArray<Photon *> nearest_photons;
-            RNLength distances[num_nearest_photons];
-            global_photon_map->Tree()->FindClosest(point, 0, FLT_MAX,
-                num_nearest_photons, nearest_photons, distances);
-
-            for (int i = 0; i < nearest_photons.NEntries(); i++) {
-              Photon *p = nearest_photons.Kth(i);
-              indirect_global += p->power;
-            }
-
-            // Sum up photon power and divide by approximated sphere radius
-            RNLength radius = distances[nearest_photons.NEntries() - 1];
-            indirect_global /= (RN_PI * radius * radius);
-
-            // Add indirect contribution to pixel color
-            color += indirect_global;
-          }
-
-          // Add caustics using caustic_photon_map
-          RNRgb caustic = RNblack_rgb;
-          if (num_nearest_photons > 0) {
-            // Find the nearest k photons to intersection point
-            RNArray<Photon *> nearest_photons;
-            RNLength distances[num_nearest_photons];
-            caustic_photon_map->Tree()->FindClosest(point, 0, FLT_MAX,
-                num_nearest_photons, nearest_photons, distances);
-
-            for (int i = 0; i < nearest_photons.NEntries(); i++) {
-              Photon *p = nearest_photons.Kth(i);
-              caustic += p->power;
-            }
-
-            // Sum up photon power and divide by approximated sphere radius
-            RNLength radius = distances[nearest_photons.NEntries() - 1];
-            caustic /= (RN_PI * radius * radius);
-
-            // Add caustic contribution to pixel color
-            color += caustic;
-          }
-        }
-
-        // Set pixel color
-        clampColor(&color);
-        image->SetPixelRGB(i, j, color);
-
-        // Update ray count
-        ray_count++;
+      RNRgb color = RNblack_rgb;
+      for (int k = 0; k < num_samples; k++) {
+        R3Ray ray = scene->Viewer().WorldRay(i, j);
+        color += TraceRay(scene, global_photon_map, caustic_photon_map,
+          num_nearest_photons, specular_exponent, ray, &ray_count);
       }
+      color /= num_samples;
+      clampColor(&color);
+
+      // Set pixel color
+      image->SetPixelRGB(i, j, color);
     }
   }
+
 
   // Print statistics
   if (print_verbose) {

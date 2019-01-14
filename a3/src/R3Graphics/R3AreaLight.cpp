@@ -312,6 +312,7 @@ GetPhotonRay(void) const
   double y = sin(2.0 * RN_PI * e2) * sqrt(1.0 - pow(1.0 - e1, 2));
   double z = 1.0 - e1;
   R3Vector dir = R3Vector(x, y, z);
+  dir.Normalize();
 
   // Rotate sampled direction into proper coordinate space
   R3Vector base = R3Vector(0.0, 0.0, 1.0);

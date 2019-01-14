@@ -3,6 +3,7 @@
 
 
 /* Include files */
+#include <cmath>
 
 #include "R3Graphics.h"
 
@@ -117,7 +118,41 @@ IntensityAtPoint(const R3Point& point) const
 R3Ray R3SpotLight::
 GetPhotonRay(void) const
 {
-  return R3Ray();
+  R3Point position = Position();
+  R3Vector sample_dir;
+  RNScalar cos_alpha;
+
+  // Use rejection sampling to get a sampled direction within the cutoff angle
+  do {
+    RNScalar e1 = RNRandomScalar();
+    RNScalar e2 = RNRandomScalar();
+    double x = cos(2.0 * RN_PI * e2) * sqrt(1.0 - pow(1.0 - e1, 2));
+    double y = sin(2.0 * RN_PI * e2) * sqrt(1.0 - pow(1.0 - e1, 2));
+    double z = 1.0 - e1;
+    sample_dir = R3Vector(x, y, z);
+    sample_dir.Normalize();
+
+    // Rotate sampled direction into proper coordinate space
+    R3Vector base = R3Vector(0.0, 0.0, 1.0);
+
+    R3Vector normal = Direction();
+    normal.Normalize();
+
+    // Compute the axis of rotation
+    R3Vector rotation_axis = base;
+    rotation_axis.Cross(normal);
+
+    // Compute number of radians to rotate by
+    RNAngle angle = acos(base.Dot(normal));
+
+    // Rotate the sample (by mutation)
+    sample_dir.Rotate(rotation_axis, angle);
+
+    // Determine angle between sampled direction and this direction
+    cos_alpha = sample_dir.Dot(Direction());
+  } while (cos(cutoffangle) > cos_alpha);
+
+  return R3Ray(position, sample_dir);
 }
 
 void R3SpotLight::

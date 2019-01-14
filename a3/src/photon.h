@@ -51,4 +51,5 @@ private:
   RNArray<Photon *> intersections;
 };
 
+
 #endif
