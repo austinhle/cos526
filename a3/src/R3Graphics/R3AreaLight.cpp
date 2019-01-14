@@ -275,10 +275,9 @@ Reflection(const R3Brdf& brdf, const R3Point& eye,
     return diffuse + specular;
 }
 
-R3Ray R3AreaLight::
-GetPhotonRay(void) const
+R3Point R3AreaLight::
+SamplePoint(void) const
 {
-  // Use rejection sampling to sample a point on the circular area light
   RNScalar r1, r2;
   do {
     r1 = RNRandomScalar();
@@ -296,6 +295,33 @@ GetPhotonRay(void) const
   R3Point sample_point = Position();
   sample_point += r1 * Radius() * axis1;
   sample_point += r2 * Radius() * axis2;
+
+  return sample_point;
+}
+
+R3Ray R3AreaLight::
+GetPhotonRay(void) const
+{
+  // Use rejection sampling to sample a point on the circular area light
+  // RNScalar r1, r2;
+  // do {
+  //   r1 = RNRandomScalar();
+  //   r2 = RNRandomScalar();
+  // } while (r1*r1 + r2*r2 > 1);
+  //
+  // // Get circle axes
+  // R3Vector dir = circle.Normal();
+  // RNDimension dim = dir.MinDimension();
+  // R3Vector axis1 = dir % R3xyz_triad[dim];
+  // axis1.Normalize();
+  // R3Vector axis2 = dir % axis1;
+  // axis2.Normalize();
+  //
+  // R3Point sample_point = Position();
+  // sample_point += r1 * Radius() * axis1;
+  // sample_point += r2 * Radius() * axis2;
+
+  R3Point sample_point = SamplePoint();
 
   // Use inversion method to uniformly sample a direction on the hemisphere
   RNScalar e1 = RNRandomScalar();

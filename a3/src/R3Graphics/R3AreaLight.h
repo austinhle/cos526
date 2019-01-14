@@ -45,6 +45,7 @@ class R3AreaLight : public R3Light {
 	    const R3Point& point, const R3Vector& normal) const;
 
   // Photon mapping functions
+  R3Point SamplePoint(void) const;
   virtual R3Ray GetPhotonRay(void) const;
 
 	// Draw functions/operations

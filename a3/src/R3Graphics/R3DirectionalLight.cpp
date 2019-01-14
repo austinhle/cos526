@@ -179,7 +179,7 @@ GetPhotonRay(void) const
   R3Scene *scene = Scene();
   double radius = scene->BBox().DiagonalRadius();
   R3Point centroid = scene->BBox().Centroid();
-  R3Point pos = centroid - radius * this->direction;
+  R3Point pos = centroid - 1.25 * radius * this->direction;
 
   return R3Ray(pos, this->direction);
 }

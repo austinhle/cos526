@@ -7,7 +7,7 @@
 ////////////////////////////////////////////////////////////////////////
 // Include files
 ////////////////////////////////////////////////////////////////////////
-
+#include <iostream>
 #include <algorithm>
 
 #include "R3Graphics/R3Graphics.h"
@@ -32,6 +32,62 @@ static void clampColor(RNRgb *color)
   RNScalar b = color->B();
 
   color->Reset(clamp(r, LOW, HIGH), clamp(g, LOW, HIGH), clamp(b, LOW, HIGH));
+}
+
+static int ShadowRay(R3Scene *scene, R3SceneElement *hit_elem,
+  R3Point pt, R3Light *light)
+{
+  // Local variables
+  R3SceneNode *node;
+  R3SceneElement *element;
+  R3Shape *shape;
+  R3Point point;
+  R3Vector normal;
+  RNScalar t;
+
+  // Shadow ray variables
+  R3Vector direction;
+  R3Point origin;
+
+  // Scene properties
+  double radius = scene->BBox().DiagonalRadius();
+  R3Point centroid = scene->BBox().Centroid();
+
+  if (light->ClassID() == R3DirectionalLight::CLASS_ID()) {
+    R3DirectionalLight *directional_light = (R3DirectionalLight *) light;
+    direction = directional_light->Direction();
+    origin = centroid - 1.25 * radius * direction;
+  }
+  else if (light->ClassID() == R3PointLight::CLASS_ID()) {
+    R3PointLight *point_light = (R3PointLight *) light;
+    origin = point_light->Position();
+    direction = pt - origin;
+  }
+  else if (light->ClassID() == R3SpotLight::CLASS_ID()) {
+    R3SpotLight *spot_light = (R3SpotLight *) light;
+    origin = spot_light->Position();
+    direction = pt - origin;
+  }
+  else if (light->ClassID() == R3AreaLight::CLASS_ID()) {
+    R3AreaLight *area_light = (R3AreaLight *) light;
+    origin = area_light->SamplePoint();
+    direction = pt - origin;
+  }
+  else {
+    std::cerr << "Unrecognized light ID" << std::endl;
+    exit(-1);
+  }
+
+  R3Ray ray = R3Ray(origin + 0.05 * direction, direction);
+  if (scene->Intersects(ray, &node, &element, &shape, &point, &normal, &t)) {
+    if (element == hit_elem) {
+      return 0;
+    } else {
+      return 1;
+    }
+  } else {
+    return 0;
+  }
 }
 
 R2Image *
@@ -81,7 +137,10 @@ RenderImage(R3Scene *scene,
           RNRgb direct = RNblack_rgb;
           for (int k = 0; k < scene->NLights(); k++) {
             R3Light *light = scene->Light(k);
-            direct += light->Reflection(*brdf, eye, point, normal);
+
+            if (!ShadowRay(scene, element, point, light)) {
+              direct += light->Reflection(*brdf, eye, point, normal);
+            }
           }
           color += direct;
 
