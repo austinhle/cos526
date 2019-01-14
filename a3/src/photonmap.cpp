@@ -50,7 +50,7 @@ static PhotonMap *caustic_photon_map = NULL;
 static int num_global_photons = 1000;
 static int num_caustic_photons = 10000;
 static int N = 0; // number of photons to use in radiance estimate
-static int E = 3; // specular exponent
+static int E = 10; // specular exponent
 static int build_global_map = TRUE;
 
 // Normal vector of coordinate system used to sample vectors
@@ -300,7 +300,7 @@ DrawGlobalPhotons(void)
     R3Vector direction = p->direction;
 
     if (p->bounces > 0) {
-      glColor3d(1.0, 1.0, 1.0);
+      glColor3d(0.0, 0.0, 1.0);
     } else {
       glColor3d(0.0, 1.0, 0.0);
     }
@@ -309,8 +309,8 @@ DrawGlobalPhotons(void)
 
     glBegin(GL_LINES);
     R3LoadPoint(position);
-    // R3LoadPoint(position - 0.2 * direction);
-    R3LoadPoint(p->start_pos);
+    R3LoadPoint(position - 0.05 * direction);
+    // R3LoadPoint(p->start_pos);
     glEnd();
   }
 }
@@ -956,7 +956,6 @@ static void TracePhoton(Photon *p)
       // -- AND --
       // photon started with specular reflection or transmission
       if (p->s_or_t == TRUE && brdf->IsDiffuse()) {
-      // if (p->s_or_t == TRUE) {
         caustic_photon_map->AddPhotonIntersection(p);
       }
     }
