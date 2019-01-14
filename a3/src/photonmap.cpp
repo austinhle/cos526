@@ -46,10 +46,14 @@ static R3Point center(0, 0, 0);
 
 static PhotonMap *global_photon_map = NULL;
 static PhotonMap *caustic_photon_map = NULL;
-static int num_global_photons = 100;
-static int num_caustic_photons = 1000;
-static int N = 0;
+static int num_global_photons = 1000;
+static int num_caustic_photons = 10000;
+static int N = 0; // number of photons to use in radiance estimate
+static int E = 3; // specular exponent
 static int build_global_map = TRUE;
+
+// Normal vector of coordinate system used to sample vectors
+static const R3Vector BASE = R3Vector(0.0, 0.0, 1.0);
 
 // Display variables
 
@@ -59,7 +63,7 @@ static int show_lights = 0;
 static int show_bboxes = 0;
 static int show_rays = 0;
 static int show_global_photons = 0;
-static int show_caustic_photons = 0;
+static int show_caustic_photons = 1;
 static int show_frame_rate = 0;
 
 
@@ -278,9 +282,9 @@ DrawRays(R3Scene *scene)
 
 
 static void
-DrawPhotons(PhotonMap *map)
+DrawGlobalPhotons(void)
 {
-  const RNArray<Photon *>& photons = map->Intersections();
+  const RNArray<Photon *>& photons = global_photon_map->Intersections();
   for (int i = 0; i < photons.NEntries(); i++) {
     Photon *p = photons.Kth(i);
     R3Point position = p->position;
@@ -299,6 +303,29 @@ DrawPhotons(PhotonMap *map)
     // R3LoadPoint(position - 0.2 * direction);
     R3LoadPoint(p->start_pos);
     glEnd();
+  }
+}
+
+static void
+DrawCausticPhotons(void)
+{
+  const RNArray<Photon *>& photons = caustic_photon_map->Intersections();
+  for (int i = 0; i < photons.NEntries(); i++) {
+    Photon *p = photons.Kth(i);
+    R3Point position = p->position;
+    R3Vector direction = p->direction;
+
+    glColor3d(1.0, 1.0, 1.0);
+    R3Sphere(position, 0.01).Draw();
+
+    glBegin(GL_LINES);
+    R3LoadPoint(position);
+    R3LoadPoint(position - 0.05 * direction);
+    // R3LoadPoint(p->start_pos);
+    glEnd();
+
+    // glColor3d(0.0, 0.0, 1.0);
+    // R3Sphere(p->start_pos, 0.01).Draw();
   }
 }
 
@@ -364,7 +391,7 @@ void GLUTRedraw(void)
   if (show_global_photons) {
     glDisable(GL_LIGHTING);
     glLineWidth(3);
-    DrawPhotons(global_photon_map);
+    DrawGlobalPhotons();
     glLineWidth(1);
   }
 
@@ -372,7 +399,7 @@ void GLUTRedraw(void)
   if (show_caustic_photons) {
     glDisable(GL_LIGHTING);
     glLineWidth(3);
-    DrawPhotons(caustic_photon_map);
+    DrawCausticPhotons();
     glLineWidth(1);
   }
 
@@ -750,6 +777,9 @@ ParseArgs(int argc, char **argv)
       else if (!strcmp(*argv, "-N")) {
         argc--; argv++; N = atoi(*argv);
       }
+      else if (!strcmp(*argv, "-E")) {
+        argc--; argv++; E = atoi(*argv);
+      }
       else {
         fprintf(stderr, "Invalid program argument: %s", *argv);
         exit(1);
@@ -789,18 +819,15 @@ static void InitializePhotonMaps(void)
 // Rotate sample to the coordinate system defined by normal.
 static void rotateTo(R3Vector& sample, R3Vector &normal)
 {
-  // Coordinate system that was used to sample the vector
-  R3Vector base = R3Vector(0.0, 1.0, 0.0);
-
   // Normalize the normal vector defining the new coordinate system
   normal.Normalize();
 
   // Compute the axis of rotation
-  R3Vector rotation_axis = base;
+  R3Vector rotation_axis = BASE;
   rotation_axis.Cross(normal);
 
   // Compute number of radians to rotate by
-  RNAngle angle = acos(base.Dot(normal));
+  RNAngle angle = acos(BASE.Dot(normal));
 
   // Rotate the sample (by mutation)
   sample.Rotate(rotation_axis, angle);
@@ -873,11 +900,15 @@ static RR RussianRoulette(const R3Brdf *brdf, Photon *p)
     return DIFFUSE_REFLECTION;
   } else if (k < pd + ps) {
     p->power = RNRgb(pr * sr, pg * sg, pb * sb) / ps;
-    p->s_or_t = TRUE;
+    if (p->bounces == 0) {
+      p->s_or_t = TRUE;
+    }
     return SPECULAR_REFLECTION;
   } else if (k < pd + ps + pt) {
     p->power = RNRgb(pr * tr, pg * tg, pb * tb) / pt;
-    p->s_or_t = TRUE;
+    if (p->bounces == 0) {
+      p->s_or_t = TRUE;
+    }
     return TRANSMISSION;
   } else {
     return ABSORPTION;
@@ -906,15 +937,14 @@ static void TracePhoton(Photon *p)
     if (build_global_map == TRUE) {
       // Store photon-surface intersection if surface is diffuse
       if (brdf->IsDiffuse()) {
-        // std::cerr << "Storing photon in global map..." << std::endl;
         global_photon_map->AddPhotonIntersection(p);
       }
     } else { // Building caustic photon map
       // Store photon-surface intersection if surface is diffuse
       // -- AND --
-      // photon has already been through specular reflection or transmission
+      // photon started with specular reflection or transmission
       if (p->s_or_t == TRUE && brdf->IsDiffuse()) {
-        std::cerr << "Storing photon in caustic map..." << std::endl;
+      // if (p->s_or_t == TRUE) {
         caustic_photon_map->AddPhotonIntersection(p);
       }
     }
@@ -923,8 +953,6 @@ static void TracePhoton(Photon *p)
     RR rr = RussianRoulette(brdf, p);
     switch (rr) {
       case DIFFUSE_REFLECTION: {
-        // std::cerr << "Doing a diffuse reflection!" << std::endl;
-
         // Sample a diffuse reflection direction
         RNScalar u1 = RNRandomScalar();
         RNScalar u2 = RNRandomScalar();
@@ -934,7 +962,7 @@ static void TracePhoton(Photon *p)
         rotateTo(dir, normal);
 
         // Create new secondary photon to trace
-        Photon *next_photon = new Photon(point + 0.05 * dir, dir, p->power);
+        Photon *next_photon = new Photon(point + 0.05 * dir, dir, p->power, p->s_or_t);
         next_photon->bounces = p->bounces + 1;
         next_photon->start_pos = point;
         TracePhoton(next_photon);
@@ -942,9 +970,62 @@ static void TracePhoton(Photon *p)
         break;
       }
       case SPECULAR_REFLECTION: {
+        // Sample a specular reflection direction
+        RNScalar u1 = RNRandomScalar();
+        RNScalar u2 = RNRandomScalar();
+        RNAngle pitch = 2.0 * RN_PI * u2;
+        RNAngle yaw = acos(pow(u1, 1.0 / E + 1));
+        R3Vector dir = R3Vector(pitch, yaw);
+        rotateTo(dir, normal);
+
+        // Create new secondary photon to trace
+        Photon *next_photon = new Photon(point + 0.05 * dir, dir, p->power, p->s_or_t);
+        next_photon->bounces = p->bounces + 1;
+        next_photon->start_pos = point;
+        TracePhoton(next_photon);
+
         break;
       }
       case TRANSMISSION: {
+        // Normal vector of surface intersection
+        R3Vector n = normal;
+        n.Normalize();
+
+        // Incoming light vector
+        R3Vector l = ray.Vector();
+        l.Normalize();
+
+        RNScalar ior1 = 1.0; // incoming index of refraction
+        RNScalar ior2 = 1.0; // outgoing index of refraction
+
+        RNScalar c = -n.Dot(l);
+        RNBoolean inside = (c < 0) ? TRUE : FALSE;
+
+        if (inside == TRUE) { // Light is coming from inside the object
+          n = -n;
+          c = -n.Dot(l);
+          ior1 = brdf->IndexOfRefraction();
+        }
+        else {
+          ior2 = brdf->IndexOfRefraction();
+        }
+
+        RNScalar r = ior1 / ior2;
+        RNScalar s2 = r * sqrt(1.0 - pow(c, 2));
+        if (s2 > 1.0) { // Total internal reflection
+          break; // Terminate the photon; treat as ABSORPTION case
+        }
+        else {
+          // Compute refracted direction
+          R3Vector dir = r * l + (r * c - sqrt(1 - pow(r, 2) * (1 - pow(c, 2)))) * n;
+
+          // Create new secondary photon to trace
+          Photon *next_photon = new Photon(point + 0.05 * dir, dir, p->power, p->s_or_t);
+          next_photon->bounces = p->bounces + 1;
+          next_photon->start_pos = point;
+          TracePhoton(next_photon);
+        }
+
         break;
       }
       case ABSORPTION: {
