@@ -48,6 +48,7 @@ static PhotonMap *global_photon_map = NULL;
 static PhotonMap *caustic_photon_map = NULL;
 static int num_global_photons = 100;
 static int num_caustic_photons = 1000;
+static int N = 0;
 static int build_global_map = TRUE;
 
 // Display variables
@@ -746,6 +747,9 @@ ParseArgs(int argc, char **argv)
       else if (!strcmp(*argv, "-cp")) {
         argc--; argv++; num_caustic_photons = atoi(*argv);
       }
+      else if (!strcmp(*argv, "-N")) {
+        argc--; argv++; N = atoi(*argv);
+      }
       else {
         fprintf(stderr, "Invalid program argument: %s", *argv);
         exit(1);
@@ -1035,7 +1039,7 @@ int main(int argc, char **argv)
     std::cerr << "Using photon maps to render image..." << std::endl;
     // Render image
     R2Image *image = RenderImage(scene, global_photon_map, caustic_photon_map,
-      render_image_width, render_image_height, print_verbose);
+      N, render_image_width, render_image_height, print_verbose);
     if (!image) exit(-1);
 
     // Write image

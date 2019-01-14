@@ -8,6 +8,8 @@
 // Include files
 ////////////////////////////////////////////////////////////////////////
 
+#include <algorithm>
+
 #include "R3Graphics/R3Graphics.h"
 #include "photon.h"
 
@@ -15,10 +17,16 @@
 // Function to render image with photon mapping
 ////////////////////////////////////////////////////////////////////////
 
+static RNScalar clamp(RNScalar value, RNScalar low, RNScalar high)
+{
+  return std::max(low, std::min(value, high));
+}
+
 R2Image *
 RenderImage(R3Scene *scene,
   PhotonMap *global_photon_map,
   PhotonMap *caustic_photon_map,
+  int num_nearest_photons,
   int width, int height,
   int print_verbose)
 {
@@ -57,15 +65,41 @@ RenderImage(R3Scene *scene,
         if (brdf) {
           color += brdf->Emission();
 
-          // TODO: Find the nearest k photons to point and look them up in
-          // the photon map to replace this light calculation
+          // Compute direct lighting from each light
+          RNRgb direct = RNblack_rgb;
           for (int k = 0; k < scene->NLights(); k++) {
             R3Light *light = scene->Light(k);
-            color += light->Reflection(*brdf, eye, point, normal);
+            direct += light->Reflection(*brdf, eye, point, normal);
+          }
+          color += direct;
+
+          // Compute indirect lighting using photon map, if requested
+          RNRgb indirect = RNblack_rgb;
+          if (num_nearest_photons > 0) {
+            // Find the nearest k photons to intersection point
+            RNArray<Photon *> nearest_photons;
+            RNLength distances[num_nearest_photons];
+            global_photon_map->Tree()->FindClosest(point, 0, FLT_MAX,
+                num_nearest_photons, nearest_photons, distances);
+
+            for (int i = 0; i < nearest_photons.NEntries(); i++) {
+              Photon *p = nearest_photons.Kth(i);
+              indirect += p->power;
+            }
+
+            // Sum up photon power and divide by approximated sphere radius
+            RNLength radius = distances[nearest_photons.NEntries() - 1];
+            indirect /= (RN_PI * radius * radius);
+
+            // Add indirect contribution to pixel color
+            color += indirect;
           }
         }
 
         // Set pixel color
+        color = RNRgb(clamp(color.R(), 0.0, 1.0),
+                      clamp(color.G(), 0.0, 1.0),
+                      clamp(color.B(), 0.0, 1.0));
         image->SetPixelRGB(i, j, color);
 
         // Update ray count
