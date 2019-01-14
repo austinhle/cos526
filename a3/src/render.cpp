@@ -17,9 +17,21 @@
 // Function to render image with photon mapping
 ////////////////////////////////////////////////////////////////////////
 
+static const RNScalar LOW = 0.0;
+static const RNScalar HIGH = 1.0;
+
 static RNScalar clamp(RNScalar value, RNScalar low, RNScalar high)
 {
   return std::max(low, std::min(value, high));
+}
+
+static void clampColor(RNRgb *color)
+{
+  RNScalar r = color->R();
+  RNScalar g = color->G();
+  RNScalar b = color->B();
+
+  color->Reset(clamp(r, LOW, HIGH), clamp(g, LOW, HIGH), clamp(b, LOW, HIGH));
 }
 
 R2Image *
@@ -73,8 +85,8 @@ RenderImage(R3Scene *scene,
           }
           color += direct;
 
-          // Compute indirect lighting using photon map, if requested
-          RNRgb indirect = RNblack_rgb;
+          // Compute indirect lighting using global_photon_map
+          RNRgb indirect_global = RNblack_rgb;
           if (num_nearest_photons > 0) {
             // Find the nearest k photons to intersection point
             RNArray<Photon *> nearest_photons;
@@ -84,22 +96,42 @@ RenderImage(R3Scene *scene,
 
             for (int i = 0; i < nearest_photons.NEntries(); i++) {
               Photon *p = nearest_photons.Kth(i);
-              indirect += p->power;
+              indirect_global += p->power;
             }
 
             // Sum up photon power and divide by approximated sphere radius
             RNLength radius = distances[nearest_photons.NEntries() - 1];
-            indirect /= (RN_PI * radius * radius);
+            indirect_global /= (RN_PI * radius * radius);
 
             // Add indirect contribution to pixel color
-            color += indirect;
+            color += indirect_global;
+          }
+
+          // Add caustics using caustic_photon_map
+          RNRgb caustic = RNblack_rgb;
+          if (num_nearest_photons > 0) {
+            // Find the nearest k photons to intersection point
+            RNArray<Photon *> nearest_photons;
+            RNLength distances[num_nearest_photons];
+            caustic_photon_map->Tree()->FindClosest(point, 0, FLT_MAX,
+                num_nearest_photons, nearest_photons, distances);
+
+            for (int i = 0; i < nearest_photons.NEntries(); i++) {
+              Photon *p = nearest_photons.Kth(i);
+              caustic += p->power;
+            }
+
+            // Sum up photon power and divide by approximated sphere radius
+            RNLength radius = distances[nearest_photons.NEntries() - 1];
+            caustic /= (RN_PI * radius * radius);
+
+            // Add caustic contribution to pixel color
+            color += caustic;
           }
         }
 
         // Set pixel color
-        color = RNRgb(clamp(color.R(), 0.0, 1.0),
-                      clamp(color.G(), 0.0, 1.0),
-                      clamp(color.B(), 0.0, 1.0));
+        clampColor(&color);
         image->SetPixelRGB(i, j, color);
 
         // Update ray count
