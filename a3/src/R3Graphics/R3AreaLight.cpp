@@ -303,24 +303,6 @@ R3Ray R3AreaLight::
 GetPhotonRay(void) const
 {
   // Use rejection sampling to sample a point on the circular area light
-  // RNScalar r1, r2;
-  // do {
-  //   r1 = RNRandomScalar();
-  //   r2 = RNRandomScalar();
-  // } while (r1*r1 + r2*r2 > 1);
-  //
-  // // Get circle axes
-  // R3Vector dir = circle.Normal();
-  // RNDimension dim = dir.MinDimension();
-  // R3Vector axis1 = dir % R3xyz_triad[dim];
-  // axis1.Normalize();
-  // R3Vector axis2 = dir % axis1;
-  // axis2.Normalize();
-  //
-  // R3Point sample_point = Position();
-  // sample_point += r1 * Radius() * axis1;
-  // sample_point += r2 * Radius() * axis2;
-
   R3Point sample_point = SamplePoint();
 
   // Use inversion method to uniformly sample a direction on the hemisphere
@@ -329,10 +311,25 @@ GetPhotonRay(void) const
   double x = cos(2.0 * RN_PI * e2) * sqrt(1.0 - pow(1.0 - e1, 2));
   double y = sin(2.0 * RN_PI * e2) * sqrt(1.0 - pow(1.0 - e1, 2));
   double z = 1.0 - e1;
-  R3Vector direction(x, y, z);
+  R3Vector dir = R3Vector(x, y, z);
 
-  // TODO: Need to align this direction to the area light's existing direction
-  return R3Ray(sample_point, direction);
+  // Rotate sampled direction into proper coordinate space
+  R3Vector base = R3Vector(0.0, 0.0, 1.0);
+
+  R3Vector normal = circle.Normal();
+  normal.Normalize();
+
+  // Compute the axis of rotation
+  R3Vector rotation_axis = base;
+  rotation_axis.Cross(normal);
+
+  // Compute number of radians to rotate by
+  RNAngle angle = acos(base.Dot(normal));
+
+  // Rotate the sample (by mutation)
+  dir.Rotate(rotation_axis, angle);
+
+  return R3Ray(sample_point, dir);
 }
 
 void R3AreaLight::

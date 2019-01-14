@@ -173,15 +173,35 @@ Reflection(const R3Brdf& brdf, const R3Point& eye,
 R3Ray R3DirectionalLight::
 GetPhotonRay(void) const
 {
-  // TODO: Need to sample from a disk at this plane
-
-  // Compute a location outside of the scene
+  // Scene properties
   R3Scene *scene = Scene();
   double radius = scene->BBox().DiagonalRadius();
   R3Point centroid = scene->BBox().Centroid();
-  R3Point pos = centroid - 1.25 * radius * this->direction;
 
-  return R3Ray(pos, this->direction);
+  // Compute a location outside of the scene
+  R3Point pos = centroid - 1.25 * radius * direction;
+
+  // Create a circle
+  R3Circle circle = R3Circle(pos, radius, direction);
+  R3Vector dir = circle.Normal();
+  RNDimension dim = dir.MinDimension();
+  R3Vector axis1 = dir % R3xyz_triad[dim];
+  axis1.Normalize();
+  R3Vector axis2 = dir % axis1;
+  axis2.Normalize();
+
+  // Sample a point on that circle
+  RNScalar r1, r2;
+  do {
+    r1 = RNRandomScalar();
+    r2 = RNRandomScalar();
+  } while (r1*r1 + r2*r2 > 1);
+
+  R3Point sample_point = pos;
+  sample_point += r1 * radius * axis1;
+  sample_point += r2 * radius * axis2;
+
+  return R3Ray(sample_point, direction);
 }
 
 void R3DirectionalLight::

@@ -63,7 +63,7 @@ static int show_lights = 0;
 static int show_bboxes = 0;
 static int show_rays = 0;
 static int show_global_photons = 0;
-static int show_caustic_photons = 1;
+static int show_caustic_photons = 0;
 static int show_frame_rate = 0;
 
 
@@ -177,8 +177,8 @@ DrawLights(R3Scene *scene)
       R3PointLight *point_light = (R3PointLight *) light;
       R3Point position = point_light->Position();
 
-     // Draw sphere at light position
-       R3Sphere(position, 0.1 * radius).Draw();
+      // Draw sphere at light position
+      R3Sphere(position, 0.1 * radius).Draw();
     }
     else if (light->ClassID() == R3SpotLight::CLASS_ID()) {
       R3SpotLight *spot_light = (R3SpotLight *) light;
@@ -193,6 +193,14 @@ DrawLights(R3Scene *scene)
       R3LoadPoint(position);
       R3LoadPoint(position + 0.25 * radius * direction);
       glEnd();
+    }
+    else if (light->ClassID() == R3AreaLight::CLASS_ID()) {
+      // Draw sphere at point light position
+      R3AreaLight *area_light = (R3AreaLight *) light;
+      R3Point position = area_light->Position();
+
+      // Draw sphere at light position
+      R3Sphere(position, 0.1 * radius).Draw();
     }
     else {
       fprintf(stderr, "Unrecognized light type: %d\n", light->ClassID());
